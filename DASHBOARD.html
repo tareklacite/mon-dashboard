@@ -6,6 +6,12 @@
     <title>Mon Suivi Quotidien & Objectifs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FIREBASE (Version Compat pour HTML simple) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -26,412 +32,548 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-12 relative overflow-x-hidden">
 
+    <!-- ÉCRAN DE CONNEXION (Visible par défaut tant qu'on n'est pas connecté) -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-[200] flex flex-col items-center justify-center">
+        <div class="text-center space-y-6 bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl max-w-sm mx-4">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">Dashboard</h1>
+            <p class="text-slate-400 text-sm">Connecte-toi pour synchroniser tes données sur tous tes appareils.</p>
+            <button onclick="loginWithGoogle()" class="w-full bg-white text-slate-900 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-200 transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Connexion avec Google
+            </button>
+        </div>
+    </div>
+
+    <!-- ÉCRAN DE CHARGEMENT DONNÉES -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-[150] flex flex-col items-center justify-center hidden">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+        <p class="text-indigo-400 font-medium">Chargement du cloud...</p>
+    </div>
+
     <div id="notification-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-72"></div>
 
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="flex items-center gap-4 w-full md:w-auto justify-between">
-                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">🌟 Dashboard</h1>
-                <div class="bg-orange-500/20 text-orange-400 border border-orange-500/50 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                    <span id="streak-count">0</span> 🔥
-                </div>
-            </div>
-            <nav id="nav-tabs" class="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm justify-center">
-                <button onclick="switchTab('general')" id="btn-general" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white">Général</button>
-                <button onclick="switchTab('quotidien')" id="btn-quotidien" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🌙 Quotidien</button>
-                <button onclick="switchTab('spirituel')" id="btn-spirituel" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🕊️ Spirituel</button>
-                <button onclick="switchTab('financier')" id="btn-financier" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">💰 Finance</button>
-                <button onclick="switchTab('sport')" id="btn-sport" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚡ Sport</button>
-                <button onclick="switchTab('cours')" id="btn-cours" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">📚 Cours</button>
-                <button onclick="switchTab('projets')" id="btn-projets" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🚀 Projets</button>
-                <button onclick="switchTab('parametres')" id="btn-parametres" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚙️ Données</button>
-            </nav>
-        </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
-
-        <!-- TAB GENERAL -->
-        <section id="tab-general" class="tab-content active space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-indigo-300">Progression Actuelle</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium" id="general-progressions-container"></div>
-            </div>
-
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-2 gap-3">
-                    <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Moyennes</h2>
-                    <div class="flex gap-2 items-center w-full sm:w-auto">
-                        <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
-                            <option value="tout">Depuis toujours</option>
-                            <option value="annee" selected>Par Année</option>
-                            <option value="mois">Par Mois</option>
-                            <option value="semaine">Par Semaine</option>
-                            <option value="jour">Par Jour</option>
-                        </select>
-                        <select id="filtre-val-annee" onchange="calculerStatsGenerales()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026" selected>2026</option>
-                            <option value="2027">2027</option>
-                            <option value="2028">2028</option>
-                        </select>
-                        <input type="month" id="filtre-val-mois" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
-                        <input type="date" id="filtre-val-semaine" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
-                        <input type="date" id="filtre-val-jour" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
-                    </div>
-                </div>
-                
-                <div class="flex flex-wrap gap-4" id="stats-grid">
-                    <div id="box-stat-priere" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">PRIÈRE</span>
-                        <p id="stat-total-priere" class="text-lg font-bold text-indigo-400 mt-1">0 min</p>
-                    </div>
-                    <div id="box-stat-bible" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">BIBLE</span>
-                        <p id="stat-total-bible" class="text-lg font-bold text-sky-400 mt-1">0 chap.</p>
-                    </div>
-                    <div id="box-stat-finance" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">ÉPARGNE</span>
-                        <p id="stat-total-finance" class="text-lg font-bold text-emerald-400 mt-1">0 €</p>
-                    </div>
-                    <div id="box-stat-sport" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">SPORT</span>
-                        <p id="stat-total-sport" class="text-lg font-bold text-amber-400 mt-1">0 séa.</p>
-                    </div>
-                    <div id="box-stat-projets" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">PROJETS</span>
-                        <p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400 mt-1">0 min</p>
-                    </div>
-                    <div id="box-stat-sommeil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span>
-                        <p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200 mt-1">0 h</p>
-                    </div>
-                    <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">COUCHER (MOY.)</span>
-                        <p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
-                    </div>
-                    <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span>
-                        <p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
-                    </div>
-                    <div id="box-stat-ecran" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                        <span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span>
-                        <p id="stat-avg-ecran" class="text-lg font-bold text-rose-400 mt-1">0 h</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <h2 class="text-lg font-semibold text-slate-200">📊 Schémas d'activité</h2>
-                    <div class="flex items-center gap-2">
-                        <button onclick="navChart(-1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">&larr; Précédent</button>
-                        <div id="chart-picker-container" class="relative">
-                            <span id="chart-date-label" onclick="focusChartPicker()" class="cursor-pointer text-[10px] sm:text-xs text-slate-300 bg-slate-950 px-3 py-1.5 rounded border border-slate-800 text-center inline-block hover:border-indigo-500 transition"></span>
-                            <input type="date" id="picker-date-input" onchange="onPickerDateChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
-                            <input type="month" id="picker-month-input" onchange="onPickerMonthChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
+    <!-- MAIN APP CONTENT (Caché au départ) -->
+    <div id="app-content" class="hidden">
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
+            <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-4 w-full md:w-auto justify-between">
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">🌟 Dashboard</h1>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-orange-500/20 text-orange-400 border border-orange-500/50 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                            <span id="streak-count">0</span> 🔥
                         </div>
-                        <button onclick="navChart(1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">Suivant &rarr;</button>
+                        <button onclick="logout()" class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded hover:text-white">Déconnexion</button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <select id="chartTypeSelect" onchange="changerTypeGraphique(this.value)" class="bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-xs text-indigo-300 font-medium">
-                            <option value="line" selected>Courbe</option>
-                            <option value="bar">Barres</option>
-                        </select>
-                        <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
-                            <button onclick="changerPeriodeGraph('jour')" id="btn-period-jour" class="period-btn px-2 py-1 rounded-lg text-slate-400">Jour</button>
-                            <button onclick="changerPeriodeGraph('semaine')" id="btn-period-semaine" class="period-btn px-2 py-1 rounded-lg bg-indigo-600 text-white font-medium">Semaine</button>
-                            <button onclick="changerPeriodeGraph('mois')" id="btn-period-mois" class="period-btn px-2 py-1 rounded-lg text-slate-400">Mois</button>
-                            <button onclick="changerPeriodeGraph('annee')" id="btn-period-annee" class="period-btn px-2 py-1 rounded-lg text-slate-400">Année</button>
+                </div>
+                <nav id="nav-tabs" class="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm justify-center">
+                    <button onclick="switchTab('general')" id="btn-general" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white">Général</button>
+                    <button onclick="switchTab('quotidien')" id="btn-quotidien" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🌙 Quotidien</button>
+                    <button onclick="switchTab('spirituel')" id="btn-spirituel" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🕊️ Spirituel</button>
+                    <button onclick="switchTab('financier')" id="btn-financier" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">💰 Finance</button>
+                    <button onclick="switchTab('sport')" id="btn-sport" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚡ Sport</button>
+                    <button onclick="switchTab('cours')" id="btn-cours" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">📚 Cours</button>
+                    <button onclick="switchTab('projets')" id="btn-projets" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🚀 Projets</button>
+                    <button onclick="switchTab('parametres')" id="btn-parametres" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚙️ Données</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+            <!-- TAB GENERAL -->
+            <section id="tab-general" class="tab-content active space-y-6">
+                <!-- Code du TAB Général identique à la version précédente -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-indigo-300">Progression Actuelle</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium" id="general-progressions-container"></div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-2 gap-3">
+                        <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Moyennes</h2>
+                        <div class="flex gap-2 items-center w-full sm:w-auto">
+                            <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
+                                <option value="tout">Depuis toujours</option>
+                                <option value="annee" selected>Par Année</option>
+                                <option value="mois">Par Mois</option>
+                                <option value="semaine">Par Semaine</option>
+                                <option value="jour">Par Jour</option>
+                            </select>
+                            <select id="filtre-val-annee" onchange="calculerStatsGenerales()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026" selected>2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                            </select>
+                            <input type="month" id="filtre-val-mois" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
+                            <input type="date" id="filtre-val-semaine" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
+                            <input type="date" id="filtre-val-jour" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4" id="stats-grid">
+                        <div id="box-stat-priere" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">PRIÈRE</span>
+                            <p id="stat-total-priere" class="text-lg font-bold text-indigo-400 mt-1">0 min</p>
+                        </div>
+                        <div id="box-stat-bible" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">BIBLE</span>
+                            <p id="stat-total-bible" class="text-lg font-bold text-sky-400 mt-1">0 chap.</p>
+                        </div>
+                        <div id="box-stat-finance" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">ÉPARGNE</span>
+                            <p id="stat-total-finance" class="text-lg font-bold text-emerald-400 mt-1">0 €</p>
+                        </div>
+                        <div id="box-stat-sport" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">SPORT</span>
+                            <p id="stat-total-sport" class="text-lg font-bold text-amber-400 mt-1">0 séa.</p>
+                        </div>
+                        <div id="box-stat-projets" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">PROJETS</span>
+                            <p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400 mt-1">0 min</p>
+                        </div>
+                        <div id="box-stat-sommeil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span>
+                            <p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200 mt-1">0 h</p>
+                        </div>
+                        <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">COUCHER (MOY.)</span>
+                            <p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
+                        </div>
+                        <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span>
+                            <p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
+                        </div>
+                        <div id="box-stat-ecran" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span>
+                            <p id="stat-avg-ecran" class="text-lg font-bold text-rose-400 mt-1">0 h</p>
                         </div>
                     </div>
                 </div>
-                
-                <details class="bg-slate-950 rounded-xl border border-slate-800 group">
-                    <summary class="p-3 cursor-pointer text-xs font-medium text-slate-400 hover:text-slate-200 flex justify-between items-center outline-none">
-                        <span>🎛️ Filtrer les courbes affichées</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div id="chart-checkboxes" class="p-3 border-t border-slate-800 flex flex-wrap gap-4 text-xs font-medium"></div>
-                </details>
-                
-                <div class="relative h-72 w-full mt-2"><canvas id="mainChart"></canvas></div>
-            </div>
-            
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl space-y-3">
-                <h2 class="text-sm font-semibold text-slate-300">🏆 Tes Trophées</h2>
-                <div class="flex flex-wrap gap-2 text-xs" id="badges-container">
-                    <div id="badge-feu" class="badge items-center gap-1.5 bg-orange-900/30 text-orange-400 border border-orange-500/30 px-3 py-1.5 rounded-lg"><span class="text-base">🔥</span> Série 7 Jours</div>
-                    <div id="badge-sportif" class="badge items-center gap-1.5 bg-amber-900/30 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg"><span class="text-base">🥉</span> 10 Séances Sport</div>
-                    <div id="badge-finance" class="badge items-center gap-1.5 bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg"><span class="text-base">💸</span> 1er Palier 100€</div>
-                    <div id="badge-bible" class="badge items-center gap-1.5 bg-sky-900/30 text-sky-400 border border-sky-500/30 px-3 py-1.5 rounded-lg"><span class="text-base">📖</span> 50 Chapitres Lus</div>
-                </div>
-            </div>
-        </section>
 
-        <!-- TAB QUOTIDIEN -->
-        <section id="tab-quotidien" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
-                <h2 class="text-lg font-semibold text-sky-300">🌙 Quotidien & Hygiène de vie</h2>
-
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-200">✅ Routine Quotidienne</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="nouvelle-routine-input" placeholder="Ajouter une routine..." class="flex-1 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                        <button onclick="ajouterRoutine()" class="bg-sky-600 px-4 py-2 rounded-lg text-xs font-bold text-white">+</button>
-                    </div>
-                    <div class="space-y-2 text-sm" id="liste-habitudes"></div>
-                </div>
-
-                <!-- SOMMEIL -->
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
-                    <h3 class="text-sm font-semibold text-slate-200 mb-3">🛌 Cycle de Sommeil</h3>
-                    <div class="flex flex-col gap-3">
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <h2 class="text-lg font-semibold text-slate-200">📊 Schémas d'activité</h2>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-slate-400 w-16">Date :</span>
-                            <input type="date" id="sommeil-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-sky-500">
+                            <button onclick="navChart(-1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">&larr; Précédent</button>
+                            <div id="chart-picker-container" class="relative">
+                                <span id="chart-date-label" onclick="focusChartPicker()" class="cursor-pointer text-[10px] sm:text-xs text-slate-300 bg-slate-950 px-3 py-1.5 rounded border border-slate-800 text-center inline-block hover:border-indigo-500 transition"></span>
+                                <input type="date" id="picker-date-input" onchange="onPickerDateChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
+                                <input type="month" id="picker-month-input" onchange="onPickerMonthChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
+                            </div>
+                            <button onclick="navChart(1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">Suivant &rarr;</button>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de coucher</label>
-                                <div class="flex gap-2 items-center">
-                                    <select id="coucher-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
-                                    <span class="font-bold">:</span>
-                                    <select id="coucher-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                        <div class="flex items-center gap-2">
+                            <select id="chartTypeSelect" onchange="changerTypeGraphique(this.value)" class="bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-xs text-indigo-300 font-medium">
+                                <option value="line" selected>Courbe</option>
+                                <option value="bar">Barres</option>
+                            </select>
+                            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                                <button onclick="changerPeriodeGraph('jour')" id="btn-period-jour" class="period-btn px-2 py-1 rounded-lg text-slate-400">Jour</button>
+                                <button onclick="changerPeriodeGraph('semaine')" id="btn-period-semaine" class="period-btn px-2 py-1 rounded-lg bg-indigo-600 text-white font-medium">Semaine</button>
+                                <button onclick="changerPeriodeGraph('mois')" id="btn-period-mois" class="period-btn px-2 py-1 rounded-lg text-slate-400">Mois</button>
+                                <button onclick="changerPeriodeGraph('annee')" id="btn-period-annee" class="period-btn px-2 py-1 rounded-lg text-slate-400">Année</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <details class="bg-slate-950 rounded-xl border border-slate-800 group">
+                        <summary class="p-3 cursor-pointer text-xs font-medium text-slate-400 hover:text-slate-200 flex justify-between items-center outline-none">
+                            <span>🎛️ Filtrer les courbes affichées</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div id="chart-checkboxes" class="p-3 border-t border-slate-800 flex flex-wrap gap-4 text-xs font-medium"></div>
+                    </details>
+                    
+                    <div class="relative h-72 w-full mt-2"><canvas id="mainChart"></canvas></div>
+                </div>
+            </section>
+
+            <!-- TAB QUOTIDIEN -->
+            <section id="tab-quotidien" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
+                    <h2 class="text-lg font-semibold text-sky-300">🌙 Quotidien & Hygiène de vie</h2>
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-sm font-semibold text-slate-200">✅ Routine Quotidienne</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="nouvelle-routine-input" placeholder="Ajouter une routine..." class="flex-1 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                            <button onclick="ajouterRoutine()" class="bg-sky-600 px-4 py-2 rounded-lg text-xs font-bold text-white">+</button>
+                        </div>
+                        <div class="space-y-2 text-sm" id="liste-habitudes"></div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+                        <h3 class="text-sm font-semibold text-slate-200 mb-3">🛌 Cycle de Sommeil</h3>
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 w-16">Date :</span>
+                                <input type="date" id="sommeil-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-sky-500">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de coucher</label>
+                                    <div class="flex gap-2 items-center">
+                                        <select id="coucher-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                        <span class="font-bold">:</span>
+                                        <select id="coucher-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de réveil</label>
+                                    <div class="flex gap-2 items-center">
+                                        <select id="reveil-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                        <span class="font-bold">:</span>
+                                        <select id="reveil-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
-                                <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de réveil</label>
-                                <div class="flex gap-2 items-center">
-                                    <select id="reveil-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
-                                    <span class="font-bold">:</span>
-                                    <select id="reveil-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
-                                </div>
+                            <button onclick="enregistrerSommeilRoulette()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition w-full mt-1">Calculer & Enregistrer</button>
+                            
+                            <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-3 open">
+                                <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                                    <span>🕒 Historique des nuits</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                                </summary>
+                                <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-sommeil" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div>
+                            </details>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-rose-500">
+                            <input type="number" id="ecran-heures" placeholder="Heures (ex: 4)" class="w-28 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white focus:border-rose-500">
+                            <button onclick="enregistrerTempsEcran()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">Enregistrer</button>
+                        </div>
+                        <div id="ecran-saved-info" class="mt-2 text-xs"></div>
+                        <div id="impact-ecran-container" class="hidden space-y-2 mt-4 p-4 bg-rose-950/20 border border-rose-900/50 rounded-lg">
+                            <p class="text-xs font-bold text-rose-400 mb-1" id="ecran-pourcentage-txt"></p>
+                            <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="bar-impact-ecran" class="bg-gradient-to-r from-orange-500 to-rose-600 h-full w-0 transition-all"></div></div>
+                            <p class="text-xs text-slate-300 mt-3 pt-3 border-t border-rose-900/30" id="ecran-comparaison-txt"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB SPIRITUEL -->
+            <section id="tab-spirituel" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-indigo-300">🕊️ Spirituel & Prières</h2>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-priere"></div>
+                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-3">
+                        <div id="chrono-priere-display" class="text-4xl font-mono font-bold text-indigo-400">00:00:00</div>
+                        <div class="flex justify-center gap-2">
+                            <button onclick="toggleChrono('priere')" id="btn-toggle-priere" class="bg-indigo-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
+                            <button onclick="resetChrono('priere')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
+                        </div>
+                        <div class="pt-3 border-t border-slate-900 flex justify-center items-center gap-2">
+                            <span class="text-xs text-slate-400">Manuel :</span>
+                            <input type="number" id="priere-manuel-min" placeholder="Min" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded-lg text-xs text-center text-white">
+                            <button onclick="ajouterPriereManuelle()" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">+ Ajouter</button>
+                        </div>
+                    </div>
+                    <details class="bg-slate-950 rounded-xl border border-slate-800 group">
+                        <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                            <span>🕒 Historique des prières</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-prieres" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                    </details>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-semibold text-sky-300 border-t border-slate-800 pt-4 mb-2">📖 Lecture Biblique</h3>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800" id="progression-card-bible"></div>
+                        <div class="flex flex-col sm:flex-row gap-4 items-center mt-4">
+                            <select id="bible-livre" onchange="afficherChapitresBible()" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs font-semibold text-slate-200 focus:border-sky-500"></select>
+                            <div class="flex items-center justify-center gap-4 text-xs font-medium bg-slate-900 p-2.5 rounded-lg w-full sm:w-max border border-slate-800 shrink-0">
+                                <span class="text-slate-400">Mode :</span>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bible-mode" id="mode-add" value="add" checked class="accent-sky-500 w-4 h-4"> +1</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bible-mode" id="mode-rem" value="remove" class="accent-rose-500 w-4 h-4"> -1</label>
                             </div>
                         </div>
-                        <button onclick="enregistrerSommeilRoulette()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition w-full mt-1">Calculer & Enregistrer</button>
-                        
-                        <!-- HISTORIQUE DES NUITS -->
-                        <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-3 open">
+                        <div id="bible-chapitres-container" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 mt-6 max-h-60 overflow-y-auto pr-2 pb-4 pt-2"></div>
+                        <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4">
                             <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                                <span>🕒 Historique des nuits</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                                <span>🕒 Historique des lectures</span><span class="group-open:rotate-180 transition-transform">▼</span>
                             </summary>
-                            <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-sommeil" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div>
+                            <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-bible" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
                         </details>
                     </div>
                 </div>
+            </section>
 
-                <!-- ECRAN -->
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
-                    <div class="flex flex-wrap items-center gap-3">
-                        <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-rose-500">
-                        <input type="number" id="ecran-heures" placeholder="Heures (ex: 4)" class="w-28 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white focus:border-rose-500">
-                        <button onclick="enregistrerTempsEcran()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">Enregistrer</button>
-                    </div>
-                    <div id="ecran-saved-info" class="mt-2 text-xs"></div>
-                    <div id="impact-ecran-container" class="hidden space-y-2 mt-4 p-4 bg-rose-950/20 border border-rose-900/50 rounded-lg">
-                        <p class="text-xs font-bold text-rose-400 mb-1" id="ecran-pourcentage-txt"></p>
-                        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="bar-impact-ecran" class="bg-gradient-to-r from-orange-500 to-rose-600 h-full w-0 transition-all"></div></div>
-                        <p class="text-xs text-slate-300 mt-3 pt-3 border-t border-rose-900/30" id="ecran-comparaison-txt"></p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB SPIRITUEL -->
-        <section id="tab-spirituel" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-indigo-300">🕊️ Spirituel & Prières</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-priere"></div>
-                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-3">
-                    <div id="chrono-priere-display" class="text-4xl font-mono font-bold text-indigo-400">00:00:00</div>
-                    <div class="flex justify-center gap-2">
-                        <button onclick="toggleChrono('priere')" id="btn-toggle-priere" class="bg-indigo-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
-                        <button onclick="resetChrono('priere')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
-                    </div>
-                    <div class="pt-3 border-t border-slate-900 flex justify-center items-center gap-2">
-                        <span class="text-xs text-slate-400">Manuel :</span>
-                        <input type="number" id="priere-manuel-min" placeholder="Min" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded-lg text-xs text-center text-white">
-                        <button onclick="ajouterPriereManuelle()" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">+ Ajouter</button>
-                    </div>
-                </div>
-                <details class="bg-slate-950 rounded-xl border border-slate-800 group">
-                    <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                        <span>🕒 Historique des prières</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-prieres" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
-                </details>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <h3 class="text-xs font-semibold text-sky-300 border-t border-slate-800 pt-4 mb-2">📖 Lecture Biblique</h3>
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800" id="progression-card-bible"></div>
-                    <div class="flex flex-col sm:flex-row gap-4 items-center mt-4">
-                        <select id="bible-livre" onchange="afficherChapitresBible()" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs font-semibold text-slate-200 focus:border-sky-500"></select>
-                        <div class="flex items-center justify-center gap-4 text-xs font-medium bg-slate-900 p-2.5 rounded-lg w-full sm:w-max border border-slate-800 shrink-0">
-                            <span class="text-slate-400">Mode :</span>
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bible-mode" id="mode-add" value="add" checked class="accent-sky-500 w-4 h-4"> +1</label>
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bible-mode" id="mode-rem" value="remove" class="accent-rose-500 w-4 h-4"> -1</label>
+            <!-- TAB FINANCIER -->
+            <section id="tab-financier" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-emerald-300">💰 Finances</h2>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-finance"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 h-fit">
+                            <input type="number" id="finance-montant" placeholder="Montant (€)" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
+                            <input type="text" id="finance-motif" placeholder="Motif" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
+                            <div class="flex gap-2">
+                                <button onclick="ajouterTransaction(10)" class="flex-1 bg-emerald-950/40 text-emerald-300 border border-emerald-900/50 py-1.5 rounded-lg text-xs">+10 €</button>
+                                <button onclick="ajouterTransaction(-10)" class="flex-1 bg-rose-950/40 text-rose-300 border border-rose-900/50 py-1.5 rounded-lg text-xs">-10 €</button>
+                                <button onclick="ajouterTransactionPersonnalisee()" class="bg-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold text-white">Valider</button>
+                            </div>
                         </div>
+                        <details class="bg-slate-950 rounded-xl border border-slate-800 group h-fit">
+                            <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                                <span>🕒 Historique des transactions</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-transactions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                        </details>
                     </div>
-                    <div id="bible-chapitres-container" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 mt-6 max-h-60 overflow-y-auto pr-2 pb-4 pt-2"></div>
-                    <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4">
-                        <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                            <span>🕒 Historique des lectures</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                        </summary>
-                        <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-bible" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
-                    </details>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- TAB FINANCIER -->
-        <section id="tab-financier" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-emerald-300">💰 Finances</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-finance"></div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 h-fit">
-                        <input type="number" id="finance-montant" placeholder="Montant (€)" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
-                        <input type="text" id="finance-motif" placeholder="Motif" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
-                        <div class="flex gap-2">
-                            <button onclick="ajouterTransaction(10)" class="flex-1 bg-emerald-950/40 text-emerald-300 border border-emerald-900/50 py-1.5 rounded-lg text-xs">+10 €</button>
-                            <button onclick="ajouterTransaction(-10)" class="flex-1 bg-rose-950/40 text-rose-300 border border-rose-900/50 py-1.5 rounded-lg text-xs">-10 €</button>
-                            <button onclick="ajouterTransactionPersonnalisee()" class="bg-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold text-white">Valider</button>
-                        </div>
+            <!-- TAB SPORT -->
+            <section id="tab-sport" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-amber-300">⚡ Sport</h2>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-sport"></div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <input type="text" id="sport-nom" placeholder="Type de séance (ex: Musculation)" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white">
+                        <button onclick="ajouterSportManuel()" class="w-full bg-amber-500 text-slate-950 font-semibold py-2 rounded-lg text-xs">Enregistrer la séance</button>
                     </div>
-                    <details class="bg-slate-950 rounded-xl border border-slate-800 group h-fit">
+                    <details class="bg-slate-950 rounded-xl border border-slate-800 group">
                         <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                            <span>🕒 Historique des transactions</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                            <span>🕒 Historique des séances</span><span class="group-open:rotate-180 transition-transform">▼</span>
                         </summary>
-                        <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-transactions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                        <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-sports" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div>
                     </details>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- TAB SPORT -->
-        <section id="tab-sport" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-amber-300">⚡ Sport</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-sport"></div>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <input type="text" id="sport-nom" placeholder="Type de séance (ex: Musculation)" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white">
-                    <button onclick="ajouterSportManuel()" class="w-full bg-amber-500 text-slate-950 font-semibold py-2 rounded-lg text-xs">Enregistrer la séance</button>
-                </div>
-                <details class="bg-slate-950 rounded-xl border border-slate-800 group">
-                    <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                        <span>🕒 Historique des séances</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-sports" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div>
-                </details>
-            </div>
-        </section>
-
-        <!-- TAB COURS -->
-        <section id="tab-cours" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
-                <h2 class="text-lg font-semibold text-cyan-300">📚 Cours & Révisions</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
-                <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">Gestion des Matières</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] text-slate-400">Matière active :</label>
-                            <div class="flex gap-2">
-                                <select id="cours-matiere" class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-200 focus:border-cyan-500"></select>
-                                <button onclick="supprimerMatiereCourante()" class="bg-rose-950/40 text-rose-400 border border-rose-900/50 px-3 py-2 rounded-lg text-xs hover:bg-rose-900/40 transition">Supprimer</button>
+            <!-- TAB COURS -->
+            <section id="tab-cours" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
+                    <h2 class="text-lg font-semibold text-cyan-300">📚 Cours & Révisions</h2>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">Gestion des Matières</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[10px] text-slate-400">Matière active :</label>
+                                <div class="flex gap-2">
+                                    <select id="cours-matiere" class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-200 focus:border-cyan-500"></select>
+                                    <button onclick="supprimerMatiereCourante()" class="bg-rose-950/40 text-rose-400 border border-rose-900/50 px-3 py-2 rounded-lg text-xs hover:bg-rose-900/40 transition">Supprimer</button>
+                                </div>
                             </div>
-                        </div>
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[10px] text-slate-400">Ajouter une matière :</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="nouvelle-matiere-input" placeholder="Nom..." class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white focus:border-cyan-500">
-                                <button onclick="ajouterMatiere()" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition">+ Ajouter</button>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[10px] text-slate-400">Ajouter une matière :</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="nouvelle-matiere-input" placeholder="Nom..." class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white focus:border-cyan-500">
+                                    <button onclick="ajouterMatiere()" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition">+ Ajouter</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4" id="chrono-cours-container">
-                    <div class="flex justify-center items-center gap-2 text-xs pt-2">
-                        <span class="text-slate-400">Temps du chrono :</span>
-                        <input type="number" id="chrono-custom-cours-min" value="25" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
-                        <span>min</span>
-                        <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded text-cyan-300 transition">Appliquer</button>
-                    </div>
-                    <div id="chrono-cours-display" class="text-5xl font-mono font-bold text-cyan-400 my-2">00:25:00</div>
-                    <div class="flex justify-center gap-2">
-                        <button onclick="toggleChrono('cours')" id="btn-toggle-cours" class="bg-cyan-600 hover:bg-cyan-500 px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition">Démarrer</button>
-                        <button onclick="resetChrono('cours')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs text-slate-200 transition">Enregistrer</button>
-                        <button onclick="toggleFullscreen('chrono-cours-container')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl text-xs text-slate-200 transition" title="Plein écran">⛶</button>
-                    </div>
-                </div>
-                <details class="bg-slate-950 rounded-xl border border-slate-800 group">
-                    <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                        <span>🕒 Historique des révisions</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-cours-sessions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
-                </details>
-            </div>
-        </section>
-
-        <!-- TAB PROJETS -->
-        <section id="tab-projets" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-fuchsia-300">🚀 Projets Personnels</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-projets"></div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 text-center">
-                        <input type="text" id="projets-nom" placeholder="Nom du projet" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white text-center">
-                        <div id="chrono-projets-display" class="text-4xl font-mono font-bold text-fuchsia-400">00:00:00</div>
+                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4" id="chrono-cours-container">
+                        <div class="flex justify-center items-center gap-2 text-xs pt-2">
+                            <span class="text-slate-400">Temps du chrono :</span>
+                            <input type="number" id="chrono-custom-cours-min" value="25" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
+                            <span>min</span>
+                            <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded text-cyan-300 transition">Appliquer</button>
+                        </div>
+                        <div id="chrono-cours-display" class="text-5xl font-mono font-bold text-cyan-400 my-2">00:25:00</div>
                         <div class="flex justify-center gap-2">
-                            <button onclick="toggleChrono('projets')" id="btn-toggle-projets" class="bg-fuchsia-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
-                            <button onclick="resetChrono('projets')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
+                            <button onclick="toggleChrono('cours')" id="btn-toggle-cours" class="bg-cyan-600 hover:bg-cyan-500 px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition">Démarrer</button>
+                            <button onclick="resetChrono('cours')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs text-slate-200 transition">Enregistrer</button>
+                            <button onclick="toggleFullscreen('chrono-cours-container')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl text-xs text-slate-200 transition" title="Plein écran">⛶</button>
                         </div>
                     </div>
-                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
-                        <h3 class="text-xs font-semibold text-slate-300">📝 Micro-tâches</h3>
-                        <div class="flex gap-2">
-                            <input type="text" id="todo-input" placeholder="Tâche..." class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-xs text-white">
-                            <button onclick="ajouterTodo()" class="bg-fuchsia-600 px-3 py-1 rounded text-xs text-white">+</button>
-                        </div>
-                        <div id="liste-todos" class="space-y-1.5 max-h-36 overflow-y-auto text-xs"></div>
-                    </div>
+                    <details class="bg-slate-950 rounded-xl border border-slate-800 group">
+                        <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                            <span>🕒 Historique des révisions</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-cours-sessions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                    </details>
                 </div>
-                <details class="bg-slate-950 rounded-xl border border-slate-800 group">
-                    <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
-                        <span>🕒 Historique des sessions</span><span class="group-open:rotate-180 transition-transform">▼</span>
-                    </summary>
-                    <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-projets-sessions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
-                </details>
-            </div>
-        </section>
+            </section>
 
-        <!-- TAB PARAMETRES -->
-        <section id="tab-parametres" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-rose-300">🧩 Modules Actifs</h2>
-                <div id="modules-actifs-container" class="flex flex-wrap gap-4 mt-2"></div>
-            </div>
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-slate-200">⚙️ Configurer mes Objectifs</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left text-slate-300 border-collapse">
-                        <thead><tr class="border-b border-slate-800 text-slate-400"><th class="py-2">Catégorie</th><th class="py-2">Valeur</th><th class="py-2">Unité</th><th class="py-2">Période</th></tr></thead>
-                        <tbody id="config-objectifs-body" class="divide-y divide-slate-800/50"></tbody>
-                    </table>
+            <!-- TAB PROJETS -->
+            <section id="tab-projets" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-fuchsia-300">🚀 Projets Personnels</h2>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-projets"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 text-center">
+                            <input type="text" id="projets-nom" placeholder="Nom du projet" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white text-center">
+                            <div id="chrono-projets-display" class="text-4xl font-mono font-bold text-fuchsia-400">00:00:00</div>
+                            <div class="flex justify-center gap-2">
+                                <button onclick="toggleChrono('projets')" id="btn-toggle-projets" class="bg-fuchsia-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
+                                <button onclick="resetChrono('projets')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                            <h3 class="text-xs font-semibold text-slate-300">📝 Micro-tâches</h3>
+                            <div class="flex gap-2">
+                                <input type="text" id="todo-input" placeholder="Tâche..." class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-xs text-white">
+                                <button onclick="ajouterTodo()" class="bg-fuchsia-600 px-3 py-1 rounded text-xs text-white">+</button>
+                            </div>
+                            <div id="liste-todos" class="space-y-1.5 max-h-36 overflow-y-auto text-xs"></div>
+                        </div>
+                    </div>
+                    <details class="bg-slate-950 rounded-xl border border-slate-800 group">
+                        <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                            <span>🕒 Historique des sessions</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                        </summary>
+                        <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-projets-sessions" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                    </details>
                 </div>
-            </div>
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                <h2 class="text-lg font-semibold text-indigo-300">💾 Sauvegarde & Restauration</h2>
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button onclick="exporterDonnees()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium">📥 Exporter (JSON)</button>
-                    <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer">📤 Importer <input type="file" id="import-file" onchange="importerDonnees(event)" class="hidden" accept=".json"></label>
+            </section>
+
+            <!-- TAB PARAMETRES -->
+            <section id="tab-parametres" class="tab-content space-y-6">
+                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-rose-300">🧩 Modules Actifs</h2>
+                    <div id="modules-actifs-container" class="flex flex-wrap gap-4 mt-2"></div>
                 </div>
-            </div>
-        </section>
-    </main>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-slate-200">⚙️ Configurer mes Objectifs</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left text-slate-300 border-collapse">
+                            <thead><tr class="border-b border-slate-800 text-slate-400"><th class="py-2">Catégorie</th><th class="py-2">Valeur</th><th class="py-2">Unité</th><th class="py-2">Période</th></tr></thead>
+                            <tbody id="config-objectifs-body" class="divide-y divide-slate-800/50"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-indigo-300">💾 Sauvegarde manuelle (Backup)</h2>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="exporterDonnees()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium">📥 Exporter (JSON)</button>
+                        <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer">📤 Importer <input type="file" id="import-file" onchange="importerDonnees(event)" class="hidden" accept=".json"></label>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-2">Tes données sont maintenant sauvegardées automatiquement sur le Cloud. Ces boutons servent uniquement si tu veux garder une copie locale.</p>
+                </div>
+            </section>
+        </main>
+    </div> <!-- FIN APP CONTENT -->
 
     <script>
+        // ==========================================
+        // INITIALISATION FIREBASE CLOUD
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCBOzCgctoVdf8RmqTzQGybg3LSVCDqMY",
+            authDomain: "dashboard-c4084.firebaseapp.com",
+            projectId: "dashboard-c4084",
+            storageBucket: "dashboard-c4084.firebasestorage.app",
+            messagingSenderId: "754224005678",
+            appId: "1:754224005678:web:605138a9cc83b4ba7295bf"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+
+        // Fonction de connexion / déconnexion
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(err => alert("Erreur de connexion : " + err.message));
+        }
+        function logout() { auth.signOut(); }
+
+        // ==========================================
+        // LOGIQUE DES DONNÉES DE L'APPLICATION
+        // ==========================================
+        const defaultDataStructure = {
+            priereSessions: [], chapitresLus: {}, historiqueBible: [], transactions: [], sports: [], coursSessions: [], projetsSessions: [], 
+            sommeil: {}, habitudes: {}, todos: [], tempsEcran: [],
+            modulesActifs: { quotidien: true, spirituel: true, financier: true, sport: true, cours: true, projets: true },
+            objectifs: {
+                priere: { valeur: 60, periode: 'jour', unite: 'min' }, finance: { valeur: 100, periode: 'mois', unite: '€' },
+                sport: { valeur: 3, periode: 'semaine', unite: 'sea' }, cours: { valeur: 2, periode: 'jour', unite: 'h' },
+                projets: { valeur: 1, periode: 'jour', unite: 'h' }, bible: { valeur: 3, periode: 'jour', unite: 'chap.' }
+            },
+            routinesList: [{ id: 'r1', label: 'Méditation' }, { id: 'r2', label: 'Vitamines' }],
+            matieresList: ["Mathématiques", "Physique", "Langues"]
+        };
+        
+        let appData = JSON.parse(JSON.stringify(defaultDataStructure));
+
+        // NOUVEAU : Remplacer localStorage par la Base de données (Firestore)
+        function sauvegarderDonnees() {
+            if (currentUser) {
+                // Envoi silencieux sur le Cloud
+                db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error("Erreur de sauvegarde:", err));
+            }
+            // Met à jour l'interface visuellement tout de suite
+            calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); 
+        }
+
+        // ==========================================
+        // ECOUTEUR DE CONNEXION FIREBASE
+        // ==========================================
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // Connecté !
+                currentUser = user;
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('loading-overlay').classList.remove('hidden');
+
+                try {
+                    // On va chercher ses données dans la base de données
+                    const docRef = db.collection('users').doc(user.uid);
+                    const docSnap = await docRef.get();
+
+                    if (docSnap.exists) {
+                        // Il a déjà des données dans le cloud, on les fusionne pour être sûr qu'il ne manque rien
+                        appData = { ...defaultDataStructure, ...docSnap.data() };
+                    } else {
+                        // C'est un nouveau compte, on initialise la base avec les données par défaut
+                        // (Si on trouve de vieilles données locales, on peut les uploader)
+                        let oldLocal = localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
+                        if (oldLocal) {
+                            appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
+                            showNotification("Migration ☁️", "Tes anciennes données locales ont été envoyées sur le Cloud !");
+                        }
+                        await docRef.set(appData);
+                    }
+                    
+                    // On démarre l'application
+                    lancerApplication();
+                } catch (error) {
+                    console.error("Erreur récupération données:", error);
+                    alert("Erreur de chargement des données.");
+                }
+
+                document.getElementById('loading-overlay').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+
+            } else {
+                // Pas connecté, on affiche l'écran de login
+                currentUser = null;
+                document.getElementById('app-content').classList.add('hidden');
+                document.getElementById('login-overlay').classList.remove('hidden');
+            }
+        });
+
+        // ==========================================
+        // DEMARRAGE DE L'APPLICATION
+        // ==========================================
+        function lancerApplication() {
+            let defaultDate = new Date().toISOString().split('T')[0];
+            document.getElementById('sommeil-date').value = defaultDate; 
+            document.getElementById('ecran-date').value = defaultDate;
+            initSommeilRouletteSelects();
+            renderModulesActifs(); 
+            applyModulesVisibility(); 
+            renderMatieres(); 
+            initSelectBible(); 
+            initChart(); 
+            calculerStatsGenerales();
+        }
+
+        // ==========================================
+        // RESTE DES FONCTIONS DE CALCUL (Identique à avant)
+        // ==========================================
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
         const getToday = () => new Date().toLocaleDateString('fr-FR');
         function parseDateString(ds) { let [d,m,y] = ds.split('/'); return new Date(y, m-1, d); }
@@ -465,63 +607,17 @@
             setTimeout(() => { notif.classList.add('translate-x-full', 'opacity-0'); setTimeout(() => notif.remove(), 300); }, 5000);
         }
 
-        const biblesData = {
-            "Ancien Testament": {
-                "Genèse": 50, "Exode": 40, "Lévitique": 27, "Nombres": 36, "Deutéronome": 34, "Josué": 24, "Juges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
-                "1 Rois": 22, "2 Rois": 25, "1 Chroniques": 29, "2 Chroniques": 36, "Esdras": 10, "Néhémie": 13, "Esther": 10, "Job": 42, "Psaumes": 150, "Proverbes": 31,
-                "Ecclésiaste": 12, "Cantique des Cantiques": 8, "Ésaïe": 66, "Jérémie": 52, "Lamentations": 5, "Ézéchiel": 48, "Daniel": 12, "Osée": 14, "Joël": 3,
-                "Amos": 9, "Abdias": 1, "Jonas": 4, "Michée": 7, "Nahum": 3, "Habacuc": 3, "Sophonie": 3, "Aggée": 2, "Zacharie": 14, "Malachie": 4
-            },
-            "Nouveau Testament": {
-                "Matthieu": 28, "Marc": 16, "Luc": 24, "Jean": 21, "Actes": 28, "Romains": 16, "1 Corinthiens": 16, "2 Corinthiens": 13, "Galates": 6, "Éphésiens": 6, "Philippiens": 4,
-                "Colossiens": 4, "1 Thessaloniciens": 5, "2 Thessaloniciens": 3, "1 Timothée": 6, "2 Timothée": 4, "Tite": 3, "Philémon": 1, "Hébreux": 13, "Jacques": 5,
-                "1 Pierre": 5, "2 Pierre": 3, "1 Jean": 5, "2 Jean": 1, "3 Jean": 1, "Jude": 1, "Apocalypse": 22
-            }
-        };
-
+        const biblesData = { "Ancien Testament": { "Genèse": 50, "Exode": 40, "Lévitique": 27, "Nombres": 36, "Deutéronome": 34, "Josué": 24, "Juges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24, "1 Rois": 22, "2 Rois": 25, "1 Chroniques": 29, "2 Chroniques": 36, "Esdras": 10, "Néhémie": 13, "Esther": 10, "Job": 42, "Psaumes": 150, "Proverbes": 31, "Ecclésiaste": 12, "Cantique des Cantiques": 8, "Ésaïe": 66, "Jérémie": 52, "Lamentations": 5, "Ézéchiel": 48, "Daniel": 12, "Osée": 14, "Joël": 3, "Amos": 9, "Abdias": 1, "Jonas": 4, "Michée": 7, "Nahum": 3, "Habacuc": 3, "Sophonie": 3, "Aggée": 2, "Zacharie": 14, "Malachie": 4 }, "Nouveau Testament": { "Matthieu": 28, "Marc": 16, "Luc": 24, "Jean": 21, "Actes": 28, "Romains": 16, "1 Corinthiens": 16, "2 Corinthiens": 13, "Galates": 6, "Éphésiens": 6, "Philippiens": 4, "Colossiens": 4, "1 Thessaloniciens": 5, "2 Thessaloniciens": 3, "1 Timothée": 6, "2 Timothée": 4, "Tite": 3, "Philémon": 1, "Hébreux": 13, "Jacques": 5, "1 Pierre": 5, "2 Pierre": 3, "1 Jean": 5, "2 Jean": 1, "3 Jean": 1, "Jude": 1, "Apocalypse": 22 } };
         const modInfos = { quotidien: { label: '🌙 Quotidien' }, spirituel: { label: '🕊️ Spirituel' }, financier: { label: '💰 Finance' }, sport: { label: '⚡ Sport' }, cours: { label: '📚 Cours' }, projets: { label: '🚀 Projets' } };
         const objToModule = { priere: 'spirituel', bible: 'spirituel', finance: 'financier', sport: 'sport', cours: 'cours', projets: 'projets', sommeil: 'quotidien', ecran: 'quotidien' };
-
-        let rawOldData = localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17') || localStorage.getItem('monAppSuiviDataV16');
-        let appData = rawOldData ? JSON.parse(rawOldData) : {
-            priereSessions: [], chapitresLus: {}, historiqueBible: [], transactions: [], sports: [], coursSessions: [], projetsSessions: [], 
-            sommeil: {}, habitudes: {}, todos: [], tempsEcran: []
-        };
-        
-        if (!appData.historiqueBible) appData.historiqueBible = [];
-        if (!appData.modulesActifs) appData.modulesActifs = { quotidien: true, spirituel: true, financier: true, sport: true, cours: true, projets: true };
-
-        if (!appData.objectifs || typeof appData.objectifs.priere === 'number') {
-            appData.objectifs = {
-                priere: { valeur: 60, periode: 'jour', unite: 'min' }, finance: { valeur: 100, periode: 'mois', unite: '€' },
-                sport: { valeur: 3, periode: 'semaine', unite: 'sea' }, cours: { valeur: 2, periode: 'jour', unite: 'h' },
-                projets: { valeur: 1, periode: 'jour', unite: 'h' }, bible: { valeur: 3, periode: 'jour', unite: 'chap.' }
-            };
-        }
-        if (!appData.objectifs.bible) appData.objectifs.bible = { valeur: 3, periode: 'jour', unite: 'chap.' };
-        if (!appData.routinesList) appData.routinesList = [{ id: 'r1', label: 'Méditation' }, { id: 'r2', label: 'Vitamines' }];
-        if (!appData.matieresList) appData.matieresList = ["Mathématiques", "Physique", "Langues"];
-        if (!appData.habitudes) appData.habitudes = {};
-        if (!appData.sommeil) appData.sommeil = {};
-        if (!appData.tempsEcran) appData.tempsEcran = {};
-
-        for (let d in appData.sommeil) {
-            if (typeof appData.sommeil[d] === 'number') {
-                appData.sommeil[d] = { duree: appData.sommeil[d], coucher: null, reveil: null };
-            }
-        }
 
         function initSommeilRouletteSelects() {
             let hOpts = '', mOpts = '';
             for(let i=0; i<24; i++) hOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}h</option>`;
             for(let i=0; i<60; i+=5) mOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}m</option>`;
-            
-            document.getElementById('coucher-h').innerHTML = hOpts;
-            document.getElementById('coucher-m').innerHTML = mOpts;
-            document.getElementById('reveil-h').innerHTML = hOpts;
-            document.getElementById('reveil-m').innerHTML = mOpts;
-            document.getElementById('coucher-h').value = "23";
-            document.getElementById('reveil-h').value = "07";
+            document.getElementById('coucher-h').innerHTML = hOpts; document.getElementById('coucher-m').innerHTML = mOpts;
+            document.getElementById('reveil-h').innerHTML = hOpts; document.getElementById('reveil-m').innerHTML = mOpts;
+            document.getElementById('coucher-h').value = "23"; document.getElementById('reveil-h').value = "07";
         }
 
         function renderModulesActifs() {
@@ -548,23 +644,11 @@
             document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('bg-indigo-600', 'text-white'); el.classList.add('text-slate-400'); });
             document.getElementById('tab-' + tabId).classList.add('active');
             let btn = document.getElementById('btn-' + tabId); 
-            if(btn) {
-                btn.classList.add('bg-indigo-600', 'text-white'); 
-                btn.classList.remove('text-slate-400');
-            }
+            if(btn) { btn.classList.add('bg-indigo-600', 'text-white'); btn.classList.remove('text-slate-400'); }
             calculerStatsGenerales();
         }
 
-        function sauvegarderDonnees() {
-            localStorage.setItem('monAppSuiviDataV18', JSON.stringify(appData));
-            calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); 
-        }
-
-        const configInfos = {
-            priere: { label: 'Prière', color: 'indigo', icon: '🕊️' }, bible: { label: 'Bible', color: 'sky', icon: '📖' },
-            finance: { label: 'Épargne', color: 'emerald', icon: '💰' }, sport: { label: 'Sport', color: 'amber', icon: '⚡' },
-            cours: { label: 'Cours', color: 'cyan', icon: '📚' }, projets: { label: 'Projets', color: 'fuchsia', icon: '🚀' }
-        };
+        const configInfos = { priere: { label: 'Prière', color: 'indigo', icon: '🕊️' }, bible: { label: 'Bible', color: 'sky', icon: '📖' }, finance: { label: 'Épargne', color: 'emerald', icon: '💰' }, sport: { label: 'Sport', color: 'amber', icon: '⚡' }, cours: { label: 'Cours', color: 'cyan', icon: '📚' }, projets: { label: 'Projets', color: 'fuchsia', icon: '🚀' } };
 
         function renderConfigObjectifs() {
             let html = '';
@@ -576,24 +660,12 @@
                 else if(k==='finance') uOpts = `<option value="€" selected>€</option>`;
                 else if(k==='sport') uOpts = `<option value="sea" selected>séances</option>`;
                 else if(k==='bible') uOpts = `<option value="chap." selected>chap.</option>`;
-
-                html += `<tr><td class="py-2 text-${configInfos[k].color}-400 font-bold whitespace-nowrap">${configInfos[k].icon} ${configInfos[k].label}</td>
-                    <td class="py-2"><input type="number" id="cfg-val-${k}" value="${obj.valeur}" onchange="updateObj('${k}')" class="w-12 sm:w-16 bg-slate-950 border border-slate-700 rounded p-1 text-white"></td>
-                    <td class="py-2"><select id="cfg-unit-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white" ${['finance','sport','bible'].includes(k)?'disabled':''}>${uOpts}</select></td>
-                    <td class="py-2"><select id="cfg-per-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white">
-                        <option value="jour" ${obj.periode==='jour'?'selected':''}>Jour</option><option value="semaine" ${obj.periode==='semaine'?'selected':''}>Sem</option>
-                        <option value="mois" ${obj.periode==='mois'?'selected':''}>Mois</option><option value="annee" ${obj.periode==='annee'?'selected':''}>An</option>
-                    </select></td></tr>`;
+                html += `<tr><td class="py-2 text-${configInfos[k].color}-400 font-bold whitespace-nowrap">${configInfos[k].icon} ${configInfos[k].label}</td><td class="py-2"><input type="number" id="cfg-val-${k}" value="${obj.valeur}" onchange="updateObj('${k}')" class="w-12 sm:w-16 bg-slate-950 border border-slate-700 rounded p-1 text-white"></td><td class="py-2"><select id="cfg-unit-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white" ${['finance','sport','bible'].includes(k)?'disabled':''}>${uOpts}</select></td><td class="py-2"><select id="cfg-per-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white"><option value="jour" ${obj.periode==='jour'?'selected':''}>Jour</option><option value="semaine" ${obj.periode==='semaine'?'selected':''}>Sem</option><option value="mois" ${obj.periode==='mois'?'selected':''}>Mois</option><option value="annee" ${obj.periode==='annee'?'selected':''}>An</option></select></td></tr>`;
             }
             document.getElementById('config-objectifs-body').innerHTML = html;
         }
 
-        function updateObj(k) {
-            appData.objectifs[k].valeur = parseInt(document.getElementById(`cfg-val-${k}`).value) || 0;
-            appData.objectifs[k].unite = document.getElementById(`cfg-unit-${k}`).value;
-            appData.objectifs[k].periode = document.getElementById(`cfg-per-${k}`).value;
-            sauvegarderDonnees();
-        }
+        function updateObj(k) { appData.objectifs[k].valeur = parseInt(document.getElementById(`cfg-val-${k}`).value) || 0; appData.objectifs[k].unite = document.getElementById(`cfg-unit-${k}`).value; appData.objectifs[k].periode = document.getElementById(`cfg-per-${k}`).value; sauvegarderDonnees(); }
 
         function getBibleSessions() { let s = []; for (let b in appData.chapitresLus) { for (let c in appData.chapitresLus[b]) { appData.chapitresLus[b][c].forEach(d => s.push({ date: d })); } } return s; }
 
@@ -603,54 +675,22 @@
             if(type==='projets') sessions = appData.projetsSessions; if(type==='sport') sessions = appData.sports;
             if(type==='finance') sessions = appData.transactions.filter(t=>t.montant>0);
             if(type==='bible') sessions = getBibleSessions();
-
-            sessions = sessions.filter(s => {
-                if(obj.periode === 'jour') return s.date === getToday(); if(obj.periode === 'semaine') return isThisWeek(s.date);
-                if(obj.periode === 'mois') return isThisMonth(s.date); if(obj.periode === 'annee') return isThisYear(s.date); return true;
-            });
-
+            sessions = sessions.filter(s => { if(obj.periode === 'jour') return s.date === getToday(); if(obj.periode === 'semaine') return isThisWeek(s.date); if(obj.periode === 'mois') return isThisMonth(s.date); if(obj.periode === 'annee') return isThisYear(s.date); return true; });
             let tRaw = (['sport','bible'].includes(type)) ? sessions.length : (type==='finance' ? sessions.reduce((a,b)=>a+b.montant, 0) : sessions.reduce((a,b)=>a+b.dureeMin, 0));
             let vAff = tRaw; if (['priere', 'cours', 'projets'].includes(type) && obj.unite === 'h') vAff = parseFloat((tRaw / 60).toFixed(1));
-            
             let pStr = obj.periode.charAt(0).toUpperCase() + obj.periode.slice(1);
             return { pct: obj.valeur > 0 ? Math.min(100, (vAff / obj.valeur) * 100) : 0, displayStr: `${vAff} / ${obj.valeur} ${obj.unite}`, titleStr: `Objectif ${pStr}`, detailHtml: '' };
         }
 
-        function updateFiltresTotauxUI() {
-            let t = document.getElementById('filtre-type-totaux').value;
-            ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); });
-            let d = new Date(); let isoDate = d.toISOString().split('T')[0];
-            if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-            if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate;
-            if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate;
-            calculerStatsGenerales();
-        }
+        function updateFiltresTotauxUI() { let t = document.getElementById('filtre-type-totaux').value; ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); }); let d = new Date(); let isoDate = d.toISOString().split('T')[0]; if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate; if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate; calculerStatsGenerales(); }
 
         function calculerStatsGenerales() {
             renderConfigObjectifs();
-            let tFiltre = document.getElementById('filtre-type-totaux').value;
-            let vAnnee = document.getElementById('filtre-val-annee').value;
-            let vMois = document.getElementById('filtre-val-mois').value; 
-            let vSem = document.getElementById('filtre-val-semaine').value; 
-            let vJour = document.getElementById('filtre-val-jour').value;
-
-            let filterFn = (d) => {
-                if (!d) return false;
-                if (tFiltre === 'tout') return true;
-                if (tFiltre === 'annee') return d.endsWith('/' + vAnnee);
-                if (tFiltre === 'mois' && vMois) { let parts = d.split('/'); return parts[1] === vMois.substring(5,7) && parts[2] === vMois.substring(0,4); }
-                if (tFiltre === 'jour' && vJour) { let parts = d.split('/'); return parts[0] === vJour.substring(8,10) && parts[1] === vJour.substring(5,7) && parts[2] === vJour.substring(0,4); }
-                if (tFiltre === 'semaine' && vSem) return isSameWeekAsISO(d, vSem);
-                return true;
-            };
+            let tFiltre = document.getElementById('filtre-type-totaux').value; let vAnnee = document.getElementById('filtre-val-annee').value; let vMois = document.getElementById('filtre-val-mois').value; let vSem = document.getElementById('filtre-val-semaine').value; let vJour = document.getElementById('filtre-val-jour').value;
+            let filterFn = (d) => { if (!d) return false; if (tFiltre === 'tout') return true; if (tFiltre === 'annee') return d.endsWith('/' + vAnnee); if (tFiltre === 'mois' && vMois) { let parts = d.split('/'); return parts[1] === vMois.substring(5,7) && parts[2] === vMois.substring(0,4); } if (tFiltre === 'jour' && vJour) { let parts = d.split('/'); return parts[0] === vJour.substring(8,10) && parts[1] === vJour.substring(5,7) && parts[2] === vJour.substring(0,4); } if (tFiltre === 'semaine' && vSem) return isSameWeekAsISO(d, vSem); return true; };
             
-            ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => {
-                let mod = objToModule[k];
-                let box = document.getElementById('box-stat-' + k);
-                if(box) box.classList.toggle('hidden', appData.modulesActifs[mod] === false);
-            });
-            document.getElementById('box-stat-sommeil-coucher').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false);
-            document.getElementById('box-stat-sommeil-reveil').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false);
+            ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => { let mod = objToModule[k]; let box = document.getElementById('box-stat-' + k); if(box) box.classList.toggle('hidden', appData.modulesActifs[mod] === false); });
+            document.getElementById('box-stat-sommeil-coucher').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false); document.getElementById('box-stat-sommeil-reveil').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false);
             
             let aFin = appData.transactions.filter(t=>filterFn(t.date)).reduce((a,t)=>a+t.montant, 0);
             document.getElementById('stat-total-priere').innerText = appData.priereSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0) + " min";
@@ -659,239 +699,74 @@
             document.getElementById('stat-total-projets').innerText = appData.projetsSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0) + " min";
             document.getElementById('stat-total-bible').innerText = getBibleSessions().filter(s=>filterFn(s.date)).length + " chap.";
 
-            let sommeilKeys = Object.keys(appData.sommeil).filter(filterFn);
-            let sCoucherSum = 0, sCoucherCount = 0, sReveilSum = 0, sReveilCount = 0, totalDuree = 0;
-            sommeilKeys.forEach(k => {
-                let s = appData.sommeil[k];
-                totalDuree += s.duree;
-                if (s.coucher) { let f = timeStrToFloat(s.coucher); if(f < 12) f += 24; sCoucherSum += f; sCoucherCount++; }
-                if (s.reveil) { let f = timeStrToFloat(s.reveil); sReveilSum += f; sReveilCount++; }
-            });
-
+            let sommeilKeys = Object.keys(appData.sommeil).filter(filterFn); let sCoucherSum = 0, sCoucherCount = 0, sReveilSum = 0, sReveilCount = 0, totalDuree = 0;
+            sommeilKeys.forEach(k => { let s = appData.sommeil[k]; totalDuree += s.duree; if (s.coucher) { let f = timeStrToFloat(s.coucher); if(f < 12) f += 24; sCoucherSum += f; sCoucherCount++; } if (s.reveil) { let f = timeStrToFloat(s.reveil); sReveilSum += f; sReveilCount++; } });
             document.getElementById('stat-avg-sommeil').innerText = sommeilKeys.length ? (totalDuree / sommeilKeys.length).toFixed(1) + " h" : "0 h";
             document.getElementById('stat-avg-coucher').innerText = sCoucherCount ? floatToTimeStr(sCoucherSum / sCoucherCount) : "--:--";
             document.getElementById('stat-avg-reveil').innerText = sReveilCount ? floatToTimeStr(sReveilSum / sReveilCount) : "--:--";
 
-            let ecranKeys = Object.keys(appData.tempsEcran).filter(filterFn);
-            let avgEcran = ecranKeys.length ? (ecranKeys.reduce((a, k) => a + appData.tempsEcran[k], 0) / ecranKeys.length).toFixed(1) : 0;
+            let ecranKeys = Object.keys(appData.tempsEcran).filter(filterFn); let avgEcran = ecranKeys.length ? (ecranKeys.reduce((a, k) => a + appData.tempsEcran[k], 0) / ecranKeys.length).toFixed(1) : 0;
             document.getElementById('stat-avg-ecran').innerText = avgEcran + " h";
 
             let genProgHtml = '';
             for (let k in appData.objectifs) {
-                let mod = objToModule[k];
-                if (appData.modulesActifs[mod] === false) continue;
-                let pr = getProgression(k); let col = configInfos[k].color;
-                let c = document.getElementById(`progression-card-${k}`);
+                let mod = objToModule[k]; if (appData.modulesActifs[mod] === false) continue;
+                let pr = getProgression(k); let col = configInfos[k].color; let c = document.getElementById(`progression-card-${k}`);
                 if(c) c.innerHTML = `<div class="flex justify-between items-center text-xs mb-2"><span class="flex items-center gap-2 text-slate-300">🎯 ${pr.titleStr}</span><span class="font-bold text-${col}-400">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div class="bg-${col}-500 h-full transition-all" style="width:${pr.pct}%"></div></div>`;
-                
-                genProgHtml += `<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between text-${col}-400 mb-2"><span>${configInfos[k].icon} ${configInfos[k].label}</span><span class="font-bold">${pr.displayStr}</span></div>
-                        <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-1"><div class="bg-${col}-500 h-full" style="width:${pr.pct}%"></div></div>
-                    </div></div>`;
+                genProgHtml += `<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between"><div><div class="flex justify-between text-${col}-400 mb-2"><span>${configInfos[k].icon} ${configInfos[k].label}</span><span class="font-bold">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-1"><div class="bg-${col}-500 h-full" style="width:${pr.pct}%"></div></div></div></div>`;
             }
             document.getElementById('general-progressions-container').innerHTML = genProgHtml;
 
-            let dSet = new Set();
-            appData.priereSessions.forEach(i => dSet.add(i.date)); appData.sports.forEach(i => dSet.add(i.date)); 
-            Object.keys(appData.habitudes).forEach(d => { if(Object.values(appData.habitudes[d]).some(v => v)) dSet.add(d); });
-            let dList = Array.from(dSet).map(d => parseDateString(d)).sort((a,b) => b-a);
-            let stk = 0, chk = new Date(); chk.setHours(0,0,0,0);
+            let dSet = new Set(); appData.priereSessions.forEach(i => dSet.add(i.date)); appData.sports.forEach(i => dSet.add(i.date)); Object.keys(appData.habitudes).forEach(d => { if(Object.values(appData.habitudes[d]).some(v => v)) dSet.add(d); });
+            let dList = Array.from(dSet).map(d => parseDateString(d)).sort((a,b) => b-a); let stk = 0, chk = new Date(); chk.setHours(0,0,0,0);
             if(!dList.some(d => d.getTime() === chk.getTime())) chk.setDate(chk.getDate() - 1);
             for (let i = 0; i < dList.length; i++) { if (dList[i].getTime() === chk.getTime()) { stk++; chk.setDate(chk.getDate() - 1); } else if (dList[i].getTime() < chk.getTime()) break; }
             document.getElementById('streak-count').innerText = stk;
             
-            afficherHabitudes();
-            updateSommeilUI();
-            updateEcranUI();
+            afficherHabitudes(); updateSommeilUI(); updateEcranUI();
         }
 
+        // Toutes les autres fonctions (identiques, utilisent appData et sauvegarderDonnees())
         function ajouterRoutine() { let v = document.getElementById('nouvelle-routine-input').value.trim(); if(v) { appData.routinesList.push({ id: 'id_' + Date.now(), label: v }); document.getElementById('nouvelle-routine-input').value = ''; sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
-        function afficherHabitudes() {
-            let st = appData.habitudes[getToday()] || {};
-            document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => {
-                let c = st[r.id] ? 'checked' : '';
-                return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg">×</button></div>`;
-            }).join('');
-        }
-
-        function enregistrerSommeilRoulette() {
-            let d = document.getElementById('sommeil-date').value;
-            if(!d) { alert("Veuillez sélectionner une date."); return; }
-            let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value;
-            let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value;
-            let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`;
-            let dateStr = parseDateISOToFr(d);
-
-            let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr);
-            if (diff < 0) diff += 24; 
-            diff = parseFloat(diff.toFixed(1));
-
-            appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr };
-            sauvegarderDonnees();
-            showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées (${coucherStr} → ${reveilStr}).`);
-        }
-
-        function updateSommeilUI() {
-            let histHtml = '';
-            let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a));
-            if(sortedDates.length === 0) {
-                histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>';
-            } else {
-                sortedDates.forEach(dateKey => {
-                    let nuit = appData.sommeil[dateKey];
-                    histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded">
-                        <span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span>
-                        <button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1">🗑️</button>
-                    </div>`;
-                });
-            }
-            document.getElementById('liste-historique-sommeil').innerHTML = histHtml;
-        }
-
+        function afficherHabitudes() { let st = appData.habitudes[getToday()] || {}; document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { let c = st[r.id] ? 'checked' : ''; return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg">×</button></div>`; }).join(''); }
+        function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées (${coucherStr} → ${reveilStr}).`); }
+        function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
         function supprimerSommeil(dateStr) { delete appData.sommeil[dateStr]; sauvegarderDonnees(); }
-
-        function enregistrerTempsEcran() { 
-            let d = document.getElementById('ecran-date').value;
-            let h = parseFloat(document.getElementById('ecran-heures').value); 
-            if(d && !isNaN(h) && h >= 0) { 
-                let dateStr = parseDateISOToFr(d); appData.tempsEcran[dateStr] = h; 
-                sauvegarderDonnees(); 
-            } 
-        }
-
-        function updateEcranUI() {
-            let d = document.getElementById('ecran-date').value;
-            if(!d) return;
-            let dateStr = parseDateISOToFr(d);
-            let h = appData.tempsEcran[dateStr];
-            let c = document.getElementById('ecran-saved-info');
-            let ic = document.getElementById('impact-ecran-container');
-            if(h !== undefined) {
-                c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded">🗑️</button></div>`;
-                ic.classList.remove('hidden');
-                let pct = Math.min(100, (h / 16) * 100);
-                document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`;
-                document.getElementById('bar-impact-ecran').style.width = `${pct}%`;
-                document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`;
-            } else {
-                c.innerHTML = ''; ic.classList.add('hidden');
-            }
-        }
+        function enregistrerTempsEcran() { let d = document.getElementById('ecran-date').value; let h = parseFloat(document.getElementById('ecran-heures').value); if(d && !isNaN(h) && h >= 0) { let dateStr = parseDateISOToFr(d); appData.tempsEcran[dateStr] = h; sauvegarderDonnees(); } }
+        function updateEcranUI() { let d = document.getElementById('ecran-date').value; if(!d) return; let dateStr = parseDateISOToFr(d); let h = appData.tempsEcran[dateStr]; let c = document.getElementById('ecran-saved-info'); let ic = document.getElementById('impact-ecran-container'); if(h !== undefined) { c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded">🗑️</button></div>`; ic.classList.remove('hidden'); let pct = Math.min(100, (h / 16) * 100); document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`; document.getElementById('bar-impact-ecran').style.width = `${pct}%`; document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; } else { c.innerHTML = ''; ic.classList.add('hidden'); } }
         function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
-
-        function initSelectBible() {
-            let h = ''; for (const [t, l] of Object.entries(biblesData)) { h += `<optgroup label="${t}">`; for (const v in l) h += `<option value="${v}">${v}</option>`; h += `</optgroup>`; }
-            document.getElementById('bible-livre').innerHTML = h; afficherChapitresBible(); afficherHistoriqueBible();
-        }
-        
-        function afficherChapitresBible() {
-            const l = document.getElementById('bible-livre').value;
-            let tot = 0; for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } }
-            const counts = appData.chapitresLus[l] || {};
-            let html = '';
-            for (let i = 1; i <= tot; i++) {
-                let arr = counts[i] || []; let c = arr.length;
-                let bg = c > 0 ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700';
-                let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-500 text-black font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : '';
-                html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none hover:scale-105 ${bg}">${i}${badge}</button>`;
-            }
-            document.getElementById('bible-chapitres-container').innerHTML = html;
-        }
-
-        function actionChapitre(livre, chap) {
-            let modeInput = document.getElementById('mode-rem').checked ? 'remove' : 'add';
-            if (!appData.chapitresLus[livre]) appData.chapitresLus[livre] = {};
-            if (!appData.chapitresLus[livre][chap]) appData.chapitresLus[livre][chap] = [];
-            let arr = appData.chapitresLus[livre][chap];
-            let now = new Date();
-            let dateComplete = now.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-            if (modeInput === 'add') {
-                arr.push(getToday());
-                appData.historiqueBible.unshift({ id: Date.now(), texte: `Lu : ${livre} ${chap}`, dateStr: dateComplete });
-            } else if (modeInput === 'remove' && arr.length > 0) {
-                arr.pop();
-                appData.historiqueBible.unshift({ id: Date.now(), texte: `Retiré : ${livre} ${chap}`, dateStr: dateComplete });
-            }
-            if (appData.historiqueBible.length > 100) appData.historiqueBible.pop();
-            sauvegarderDonnees();
-        }
-        function afficherHistoriqueBible() {
-            document.getElementById('liste-historique-bible').innerHTML = appData.historiqueBible.map(h => 
-                `<div class="flex justify-between p-2 bg-slate-950 border border-slate-800 rounded"><span>${h.texte.includes('Retiré') ? '🗑️' : '📖'} ${echapperHTML(h.texte)}</span><span class="text-slate-400 text-right">${h.dateStr}</span></div>`
-            ).join('');
-        }
-
+        function initSelectBible() { let h = ''; for (const [t, l] of Object.entries(biblesData)) { h += `<optgroup label="${t}">`; for (const v in l) h += `<option value="${v}">${v}</option>`; h += `</optgroup>`; } document.getElementById('bible-livre').innerHTML = h; afficherChapitresBible(); afficherHistoriqueBible(); }
+        function afficherChapitresBible() { const l = document.getElementById('bible-livre').value; let tot = 0; for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } } const counts = appData.chapitresLus[l] || {}; let html = ''; for (let i = 1; i <= tot; i++) { let arr = counts[i] || []; let c = arr.length; let bg = c > 0 ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'; let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-500 text-black font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : ''; html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none hover:scale-105 ${bg}">${i}${badge}</button>`; } document.getElementById('bible-chapitres-container').innerHTML = html; }
+        function actionChapitre(livre, chap) { let modeInput = document.getElementById('mode-rem').checked ? 'remove' : 'add'; if (!appData.chapitresLus[livre]) appData.chapitresLus[livre] = {}; if (!appData.chapitresLus[livre][chap]) appData.chapitresLus[livre][chap] = []; let arr = appData.chapitresLus[livre][chap]; let now = new Date(); let dateComplete = now.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); if (modeInput === 'add') { arr.push(getToday()); appData.historiqueBible.unshift({ id: Date.now(), texte: `Lu : ${livre} ${chap}`, dateStr: dateComplete }); } else if (modeInput === 'remove' && arr.length > 0) { arr.pop(); appData.historiqueBible.unshift({ id: Date.now(), texte: `Retiré : ${livre} ${chap}`, dateStr: dateComplete }); } if (appData.historiqueBible.length > 100) appData.historiqueBible.pop(); sauvegarderDonnees(); }
+        function afficherHistoriqueBible() { document.getElementById('liste-historique-bible').innerHTML = appData.historiqueBible.map(h => `<div class="flex justify-between p-2 bg-slate-950 border border-slate-800 rounded"><span>${h.texte.includes('Retiré') ? '🗑️' : '📖'} ${echapperHTML(h.texte)}</span><span class="text-slate-400 text-right">${h.dateStr}</span></div>`).join(''); }
         function renderMatieres() { document.getElementById('cours-matiere').innerHTML = appData.matieresList.map(m => `<option value="${echapperHTML(m)}">${echapperHTML(m)}</option>`).join(''); }
-        function ajouterMatiere() { 
-            let v = document.getElementById('nouvelle-matiere-input').value.trim(); 
-            if(v && !appData.matieresList.includes(v)) { 
-                appData.matieresList.push(v); 
-                document.getElementById('nouvelle-matiere-input').value = ''; 
-                sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); 
-            } 
-        }
-        function supprimerMatiereCourante() { 
-            let v = document.getElementById('cours-matiere').value; 
-            if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { 
-                appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); 
-            } 
-        }
-
+        function ajouterMatiere() { let v = document.getElementById('nouvelle-matiere-input').value.trim(); if(v && !appData.matieresList.includes(v)) { appData.matieresList.push(v); document.getElementById('nouvelle-matiere-input').value = ''; sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
+        function supprimerMatiereCourante() { let v = document.getElementById('cours-matiere').value; if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
+        
         let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
         function setPomodoroMode(id, min) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.act = parseInt(min) * 60; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; updateChronoAffichage(id); }
-        function toggleChrono(id) {
-            let c = chronos[id]; let btn = document.getElementById(`btn-toggle-${id}`);
-            if (!c.run) { c.run = true; btn.innerText = "Pause"; btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600'); c.debut = Date.now();
-                c.i = setInterval(() => { if (c.pMode && c.act > 0) { c.act--; if(c.act === 0) { resetChrono(id); return; } } else { c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000); } updateChronoAffichage(id); }, 1000);
-            } else { clearInterval(c.i); c.run = false; btn.innerText = "Reprendre"; btn.classList.replace('bg-amber-600', `bg-${c.color}-600`); if(!c.pMode) c.acc = c.act; }
-        }
-        function resetChrono(id) {
-            let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0;
-            document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`);
-            let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25;
-            let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60);
-            if (timeToAdd > 0) {
-                if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: "08:00" });
-                if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: "07:00" });
-                if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: "14:00" });
-                showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées avec succès !`);
-            }
-            c.act = c.pMode ? baseMin*60 : 0; updateChronoAffichage(id); sauvegarderDonnees(); if(document.fullscreenElement) document.exitFullscreen();
-        }
+        function toggleChrono(id) { let c = chronos[id]; let btn = document.getElementById(`btn-toggle-${id}`); if (!c.run) { c.run = true; btn.innerText = "Pause"; btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600'); c.debut = Date.now(); c.i = setInterval(() => { if (c.pMode && c.act > 0) { c.act--; if(c.act === 0) { resetChrono(id); return; } } else { c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000); } updateChronoAffichage(id); }, 1000); } else { clearInterval(c.i); c.run = false; btn.innerText = "Reprendre"; btn.classList.replace('bg-amber-600', `bg-${c.color}-600`); if(!c.pMode) c.acc = c.act; } }
+        function resetChrono(id) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); if (timeToAdd > 0) { if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: "08:00" }); if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: "07:00" }); if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: "14:00" }); showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées avec succès !`); } c.act = c.pMode ? baseMin*60 : 0; updateChronoAffichage(id); sauvegarderDonnees(); if(document.fullscreenElement) document.exitFullscreen(); }
         function updateChronoAffichage(id) { let s = chronos[id].act; document.getElementById(`chrono-${id}-display`).innerText = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(v => String(v).padStart(2, '0')).join(':'); }
         function toggleFullscreen(id) { let el = document.getElementById(id); if (!document.fullscreenElement) { el.requestFullscreen().catch(e => {}); } else { document.exitFullscreen(); } }
         function exporterDonnees() { let str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); let dl = document.createElement('a'); dl.setAttribute("href", str); dl.setAttribute("download", `dashboard.json`); document.body.appendChild(dl); dl.click(); dl.remove(); }
         function importerDonnees(e) { let f = e.target.files[0]; if (!f) return; let r = new FileReader(); r.onload = function(ev) { try { appData = JSON.parse(ev.target.result); sauvegarderDonnees(); location.reload(); } catch (err) {} }; r.readAsText(f); }
-        
         function ajouterTodo() { let t = document.getElementById('todo-input').value.trim(); if(t) { appData.todos.unshift({ id: Date.now(), texte: t, fait: false }); document.getElementById('todo-input').value = ''; sauvegarderDonnees(); } }
         function toggleTodo(id) { let t = appData.todos.find(x => x.id === id); if(t) t.fait = !t.fait; sauvegarderDonnees(); }
         function supprimerTodo(id) { appData.todos = appData.todos.filter(x => x.id !== id); sauvegarderDonnees(); }
         function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400">×</button></div>`).join(''); }
-        
         function ajouterPriereManuelle() { let m = parseInt(document.getElementById('priere-manuel-min').value); if(m>0) { appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: m, heure: "07:00" }); document.getElementById('priere-manuel-min').value = ''; sauvegarderDonnees(); } }
         function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
-        
         function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
-        
         function supprimerProjet(id) { appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
-        
-        function ajouterSportManuel() { 
-            let nomSport = document.getElementById('sport-nom').value.trim() || "Général";
-            appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); 
-            document.getElementById('sport-nom').value = ''; 
-            sauvegarderDonnees(); 
-            showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`);
-        }
+        function ajouterSportManuel() { let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
         function supprimerSport(id) { appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherSports() { document.getElementById('liste-sports').innerHTML = appData.sports.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>⚡ ${echapperHTML(s.nom)} - ${s.date}</span><button onclick="supprimerSport(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
-        
         function ajouterTransaction(m) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: m > 0 ? "Ajout" : "Retrait" }); sauvegarderDonnees(); }
         function ajouterTransactionPersonnalisee() { let m = parseFloat(document.getElementById('finance-montant').value); if(!isNaN(m)) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: document.getElementById('finance-motif').value.trim() || "Mouvement" }); document.getElementById('finance-montant').value = ''; document.getElementById('finance-motif').value = ''; sauvegarderDonnees(); } }
         function supprimerTransaction(id) { appData.transactions = appData.transactions.filter(t => t.id !== id); sauvegarderDonnees(); }
@@ -899,115 +774,21 @@
 
         let mainChart = null, currentPeriode = 'semaine', currentChartType = 'line', chartAnchorDate = new Date();
         const colors = ['#22d3ee', '#38bdf8', '#818cf8', '#e879f9', '#f472b6', '#fbbf24', '#34d399'];
-        
-        function renderChartCheckboxes() {
-            let states = {};
-            document.querySelectorAll('#chart-checkboxes input').forEach(cb => states[cb.id] = cb.checked);
-            let chks = '';
-            const addChk = (id, label, color, defaultState=true) => {
-                let isChecked = states[id] !== undefined ? states[id] : defaultState;
-                chks += `<label class="flex items-center gap-1.5 cursor-pointer font-bold" style="color:${color}"><input type="checkbox" id="${id}" ${isChecked?'checked':''} onchange="updateChart()" class="rounded" style="accent-color:${color}"> ${label}</label>`;
-            };
-            if (appData.modulesActifs['spirituel'] !== false) { addChk('check-priere', 'Prière', '#818cf8'); addChk('check-bible', 'Bible', '#38bdf8'); }
-            if (appData.modulesActifs['projets'] !== false) addChk('check-projets', 'Projets', '#e879f9');
-            if (appData.modulesActifs['sport'] !== false) addChk('check-sport', 'Sport', '#fbbf24');
-            if (appData.modulesActifs['financier'] !== false) addChk('check-finance', 'Épargne', '#34d399');
-            if (appData.modulesActifs['cours'] !== false) {
-                chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Matières (Cours) :</span>`;
-                appData.matieresList.forEach((m, i) => addChk(`check-mat-${i}`, echapperHTML(m), colors[i % colors.length]));
-            }
-            if (appData.modulesActifs['quotidien'] !== false) {
-                chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Santé & Quotidien :</span>`;
-                addChk('check-sommeil', 'Sommeil (h)', '#c7d2fe'); addChk('check-ecran', 'Écran (h)', '#fb7185');
-                appData.routinesList.forEach(r => { chks += `<label class="flex items-center gap-1.5 cursor-pointer text-slate-300"><input type="checkbox" id="check-rt-${r.id}" onchange="updateChart()" class="accent-slate-500 rounded" ${states[`check-rt-${r.id}`]?'checked':''}> ${echapperHTML(r.label)}</label>`; });
-            }
-            document.getElementById('chart-checkboxes').innerHTML = chks;
-        }
-
+        function renderChartCheckboxes() { let states = {}; document.querySelectorAll('#chart-checkboxes input').forEach(cb => states[cb.id] = cb.checked); let chks = ''; const addChk = (id, label, color, defaultState=true) => { let isChecked = states[id] !== undefined ? states[id] : defaultState; chks += `<label class="flex items-center gap-1.5 cursor-pointer font-bold" style="color:${color}"><input type="checkbox" id="${id}" ${isChecked?'checked':''} onchange="updateChart()" class="rounded" style="accent-color:${color}"> ${label}</label>`; }; if (appData.modulesActifs['spirituel'] !== false) { addChk('check-priere', 'Prière', '#818cf8'); addChk('check-bible', 'Bible', '#38bdf8'); } if (appData.modulesActifs['projets'] !== false) addChk('check-projets', 'Projets', '#e879f9'); if (appData.modulesActifs['sport'] !== false) addChk('check-sport', 'Sport', '#fbbf24'); if (appData.modulesActifs['financier'] !== false) addChk('check-finance', 'Épargne', '#34d399'); if (appData.modulesActifs['cours'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Matières (Cours) :</span>`; appData.matieresList.forEach((m, i) => addChk(`check-mat-${i}`, echapperHTML(m), colors[i % colors.length])); } if (appData.modulesActifs['quotidien'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Santé & Quotidien :</span>`; addChk('check-sommeil', 'Sommeil (h)', '#c7d2fe'); addChk('check-ecran', 'Écran (h)', '#fb7185'); appData.routinesList.forEach(r => { chks += `<label class="flex items-center gap-1.5 cursor-pointer text-slate-300"><input type="checkbox" id="check-rt-${r.id}" onchange="updateChart()" class="accent-slate-500 rounded" ${states[`check-rt-${r.id}`]?'checked':''}> ${echapperHTML(r.label)}</label>`; }); } document.getElementById('chart-checkboxes').innerHTML = chks; }
         function initChart() { renderChartCheckboxes(); mainChart = new Chart(document.getElementById('mainChart').getContext('2d'), { type: currentChartType, data: getChartData(currentPeriode), options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } } }); }
         function changerTypeGraphique(t) { currentChartType = t; if (mainChart) { mainChart.destroy(); initChart(); } }
         function changerPeriodeGraph(p) { currentPeriode = p; chartAnchorDate = new Date(); document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-indigo-600', 'text-white', 'font-medium'); b.classList.add('text-slate-400'); }); document.getElementById('btn-period-'+p).classList.add('bg-indigo-600', 'text-white', 'font-medium'); updateChart(); }
-        function navChart(dir) {
-            if (currentPeriode === 'annee') chartAnchorDate.setFullYear(chartAnchorDate.getFullYear() + dir);
-            else if (currentPeriode === 'mois') chartAnchorDate.setMonth(chartAnchorDate.getMonth() + dir);
-            else if (currentPeriode === 'semaine') chartAnchorDate.setDate(chartAnchorDate.getDate() + (dir * 7));
-            else if (currentPeriode === 'jour') chartAnchorDate.setDate(chartAnchorDate.getDate() + dir);
-            updateChart();
-        }
-        function focusChartPicker() {
-            let dInput = document.getElementById('picker-date-input'), mInput = document.getElementById('picker-month-input');
-            if (currentPeriode === 'annee' || currentPeriode === 'mois') mInput.click(); else dInput.click();
-        }
+        function navChart(dir) { if (currentPeriode === 'annee') chartAnchorDate.setFullYear(chartAnchorDate.getFullYear() + dir); else if (currentPeriode === 'mois') chartAnchorDate.setMonth(chartAnchorDate.getMonth() + dir); else if (currentPeriode === 'semaine') chartAnchorDate.setDate(chartAnchorDate.getDate() + (dir * 7)); else if (currentPeriode === 'jour') chartAnchorDate.setDate(chartAnchorDate.getDate() + dir); updateChart(); }
+        function focusChartPicker() { let dInput = document.getElementById('picker-date-input'), mInput = document.getElementById('picker-month-input'); if (currentPeriode === 'annee' || currentPeriode === 'mois') mInput.click(); else dInput.click(); }
         function onPickerDateChange(val) { if (val) { chartAnchorDate = new Date(val); updateChart(); } }
         function onPickerMonthChange(val) { if (val) { let [y, m] = val.split('-'); chartAnchorDate = new Date(parseInt(y), parseInt(m) - 1, 1); updateChart(); } }
-        
         function getChartData(p) {
-            let labels = [], dPri=[], dPro=[], dSpo=[], dFin=[], dBible=[], dSom=[], dEcr=[];
-            let dMat = {}; appData.matieresList.forEach(m => dMat[m] = []);
-            let dRout = {}; appData.routinesList.forEach(r => dRout[r.id] = []);
-            let bSess = getBibleSessions(), targetDate = new Date(chartAnchorDate);
-            
-            document.getElementById('picker-date-input').classList.add('pointer-events-none');
-            document.getElementById('picker-month-input').classList.add('pointer-events-none');
-            
-            if (p === 'annee') {
-                document.getElementById('picker-month-input').classList.remove('pointer-events-none');
-                document.getElementById('chart-date-label').innerText = `Année ${targetDate.getFullYear()}`;
-                let tY = targetDate.getFullYear();
-                for (let i = 0; i < 12; i++) {
-                    let d = new Date(tY, i, 1); labels.push(d.toLocaleDateString('fr-FR', { month: 'short' }));
-                    let isS = (ds) => { let pts=ds.split('/'); return parseInt(pts[1],10)-1===i && parseInt(pts[2],10)===tY; };
-                    dPri.push(appData.priereSessions.filter(s=>isS(s.date)).reduce((a,b)=>a+b.dureeMin,0));
-                    dPro.push(appData.projetsSessions.filter(s=>isS(s.date)).reduce((a,b)=>a+b.dureeMin,0)); 
-                    dSpo.push(appData.sports.filter(s=>isS(s.date)).length);
-                    dFin.push(appData.transactions.filter(t=>isS(t.date)&&t.montant>0).reduce((a,b)=>a+b.montant,0)); 
-                    dBible.push(bSess.filter(s=>isS(s.date)).length);
-                    let sSom=0, cSom=0, sEcr=0, cEcr=0;
-                    Object.keys(appData.sommeil).forEach(ds => { if(isS(ds)){ sSom+=appData.sommeil[ds].duree; cSom++; } }); dSom.push(cSom>0 ? parseFloat((sSom/cSom).toFixed(1)) : 0);
-                    Object.keys(appData.tempsEcran).forEach(ds => { if(isS(ds)){ sEcr+=appData.tempsEcran[ds]; cEcr++; } }); dEcr.push(cEcr>0 ? parseFloat((sEcr/cEcr).toFixed(1)) : 0);
-                    appData.matieresList.forEach(m => dMat[m].push(appData.coursSessions.filter(s=>isS(s.date) && s.matiere===m).reduce((a,b)=>a+b.dureeMin,0)));
-                    appData.routinesList.forEach(r => { let c=0; Object.keys(appData.habitudes).forEach(ds => { if(isS(ds) && appData.habitudes[ds][r.id]) c++; }); dRout[r.id].push(c); });
-                }
-            } else if (p === 'mois') {
-                document.getElementById('picker-month-input').classList.remove('pointer-events-none');
-                let y = targetDate.getFullYear(), m = targetDate.getMonth(), daysInMonth = new Date(y, m + 1, 0).getDate();
-                document.getElementById('chart-date-label').innerText = targetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-                for (let i = 1; i <= daysInMonth; i++) {
-                    labels.push(i.toString()); let sD = new Date(y, m, i).toLocaleDateString('fr-FR');
-                    dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0));
-                    dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length);
-                    dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length);
-                    dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0);
-                    appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0)));
-                    appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0));
-                }
-            } else if (p === 'semaine') {
-                document.getElementById('picker-date-input').classList.remove('pointer-events-none');
-                let day = targetDate.getDay() || 7, monday = new Date(targetDate); monday.setDate(targetDate.getDate() - day + 1);
-                let sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-                document.getElementById('chart-date-label').innerText = `Semaine du ${monday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})} au ${sunday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})}`;
-                for (let i = 0; i < 7; i++) {
-                    let d = new Date(monday); d.setDate(monday.getDate() + i); labels.push(d.toLocaleDateString('fr-FR', { weekday: 'short' }));
-                    let sD = d.toLocaleDateString('fr-FR');
-                    dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0));
-                    dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length);
-                    dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length);
-                    dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0);
-                    appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0)));
-                    appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0));
-                }
-            } else if (p === 'jour') {
-                document.getElementById('picker-date-input').classList.remove('pointer-events-none');
-                document.getElementById('chart-date-label').innerText = targetDate.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' });
-                labels.push(targetDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-                let sD = targetDate.toLocaleDateString('fr-FR');
-                dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0));
-                dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length);
-                dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length);
-                dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0);
-                appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0)));
-                appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0));
-            }
+            let labels = [], dPri=[], dPro=[], dSpo=[], dFin=[], dBible=[], dSom=[], dEcr=[]; let dMat = {}; appData.matieresList.forEach(m => dMat[m] = []); let dRout = {}; appData.routinesList.forEach(r => dRout[r.id] = []); let bSess = getBibleSessions(), targetDate = new Date(chartAnchorDate);
+            document.getElementById('picker-date-input').classList.add('pointer-events-none'); document.getElementById('picker-month-input').classList.add('pointer-events-none');
+            if (p === 'annee') { document.getElementById('picker-month-input').classList.remove('pointer-events-none'); document.getElementById('chart-date-label').innerText = `Année ${targetDate.getFullYear()}`; let tY = targetDate.getFullYear(); for (let i = 0; i < 12; i++) { let d = new Date(tY, i, 1); labels.push(d.toLocaleDateString('fr-FR', { month: 'short' })); let isS = (ds) => { let pts=ds.split('/'); return parseInt(pts[1],10)-1===i && parseInt(pts[2],10)===tY; }; dPri.push(appData.priereSessions.filter(s=>isS(s.date)).reduce((a,b)=>a+b.dureeMin,0)); dPro.push(appData.projetsSessions.filter(s=>isS(s.date)).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>isS(s.date)).length); dFin.push(appData.transactions.filter(t=>isS(t.date)&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>isS(s.date)).length); let sSom=0, cSom=0, sEcr=0, cEcr=0; Object.keys(appData.sommeil).forEach(ds => { if(isS(ds)){ sSom+=appData.sommeil[ds].duree; cSom++; } }); dSom.push(cSom>0 ? parseFloat((sSom/cSom).toFixed(1)) : 0); Object.keys(appData.tempsEcran).forEach(ds => { if(isS(ds)){ sEcr+=appData.tempsEcran[ds]; cEcr++; } }); dEcr.push(cEcr>0 ? parseFloat((sEcr/cEcr).toFixed(1)) : 0); appData.matieresList.forEach(m => dMat[m].push(appData.coursSessions.filter(s=>isS(s.date) && s.matiere===m).reduce((a,b)=>a+b.dureeMin,0))); appData.routinesList.forEach(r => { let c=0; Object.keys(appData.habitudes).forEach(ds => { if(isS(ds) && appData.habitudes[ds][r.id]) c++; }); dRout[r.id].push(c); }); }
+            } else if (p === 'mois') { document.getElementById('picker-month-input').classList.remove('pointer-events-none'); let y = targetDate.getFullYear(), m = targetDate.getMonth(), daysInMonth = new Date(y, m + 1, 0).getDate(); document.getElementById('chart-date-label').innerText = targetDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); for (let i = 1; i <= daysInMonth; i++) { labels.push(i.toString()); let sD = new Date(y, m, i).toLocaleDateString('fr-FR'); dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length); dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length); dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0); appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0))); appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0)); }
+            } else if (p === 'semaine') { document.getElementById('picker-date-input').classList.remove('pointer-events-none'); let day = targetDate.getDay() || 7, monday = new Date(targetDate); monday.setDate(targetDate.getDate() - day + 1); let sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); document.getElementById('chart-date-label').innerText = `Semaine du ${monday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})} au ${sunday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'})}`; for (let i = 0; i < 7; i++) { let d = new Date(monday); d.setDate(monday.getDate() + i); labels.push(d.toLocaleDateString('fr-FR', { weekday: 'short' })); let sD = d.toLocaleDateString('fr-FR'); dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length); dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length); dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0); appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0))); appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0)); }
+            } else if (p === 'jour') { document.getElementById('picker-date-input').classList.remove('pointer-events-none'); document.getElementById('chart-date-label').innerText = targetDate.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' }); labels.push(targetDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })); let sD = targetDate.toLocaleDateString('fr-FR'); dPri.push(appData.priereSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dPro.push(appData.projetsSessions.filter(s=>s.date===sD).reduce((a,b)=>a+b.dureeMin,0)); dSpo.push(appData.sports.filter(s=>s.date===sD).length); dFin.push(appData.transactions.filter(t=>t.date===sD&&t.montant>0).reduce((a,b)=>a+b.montant,0)); dBible.push(bSess.filter(s=>s.date===sD).length); dSom.push(appData.sommeil[sD] ? appData.sommeil[sD].duree : 0); dEcr.push(appData.tempsEcran[sD] || 0); appData.matieresList.forEach(mat => dMat[mat].push(appData.coursSessions.filter(s=>s.date===sD && s.matiere===mat).reduce((a,b)=>a+b.dureeMin,0))); appData.routinesList.forEach(r => dRout[r.id].push((appData.habitudes[sD] && appData.habitudes[sD][r.id]) ? 1 : 0)); }
 
             let sets = [];
             if(document.getElementById('check-priere')?.checked) sets.push({ label:'Prière', data:dPri, backgroundColor:'#818cf8', borderColor:'#818cf8', tension: 0.3 });
@@ -1021,16 +802,7 @@
             appData.routinesList.forEach(r => { if(document.getElementById(`check-rt-${r.id}`)?.checked) sets.push({ label:echapperHTML(r.label), data:dRout[r.id], backgroundColor:'#94a3b8', borderColor:'#94a3b8', borderDash:[5,5], tension: 0.3, type: 'line' }); });
             return { labels, datasets: sets };
         }
-        
         function updateChart() { if(mainChart) { mainChart.data = getChartData(currentPeriode); mainChart.update(); } }
-
-        window.onload = () => { 
-            let defaultDate = new Date().toISOString().split('T')[0];
-            document.getElementById('sommeil-date').value = defaultDate; 
-            document.getElementById('ecran-date').value = defaultDate;
-            initSommeilRouletteSelects();
-            renderModulesActifs(); applyModulesVisibility(); renderMatieres(); initSelectBible(); initChart(); calculerStatsGenerales(); sauvegarderDonnees(); 
-        };
     </script>
 </body>
 </html>
