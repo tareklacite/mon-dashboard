@@ -505,7 +505,7 @@
         function sauvegarderDonnees() {
             if (isReadOnly) {
                 showNotification("Mode Coach 🔒", "Modification impossible : Tu regardes le profil d'un ami.", "⚠️");
-                return; // Bloque toute modification
+                return; 
             }
             if (currentUser) {
                 db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error(err));
@@ -533,10 +533,9 @@
                         if (oldLocal) appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
                     }
                     
-                    // Sécurité & Initialisation Email
                     appData.ownerEmail = user.email;
                     if (!appData.sharedWith) appData.sharedWith = [];
-                    await docRef.set(appData); // Sauvegarde automatique à la connexion
+                    await docRef.set(appData); 
                     
                     lancerApplication();
                 } catch (error) {
@@ -785,7 +784,24 @@
         function updateEcranUI() { let d = document.getElementById('ecran-date').value; if(!d) return; let dateStr = parseDateISOToFr(d); let h = appData.tempsEcran[dateStr]; let c = document.getElementById('ecran-saved-info'); let ic = document.getElementById('impact-ecran-container'); if(h !== undefined) { c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded hide-on-readonly">🗑️</button></div>`; ic.classList.remove('hidden'); let pct = Math.min(100, (h / 16) * 100); document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`; document.getElementById('bar-impact-ecran').style.width = `${pct}%`; document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; } else { c.innerHTML = ''; ic.classList.add('hidden'); } }
         function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
         function initSelectBible() { let h = ''; for (const [t, l] of Object.entries(biblesData)) { h += `<optgroup label="${t}">`; for (const v in l) h += `<option value="${v}">${v}</option>`; h += `</optgroup>`; } document.getElementById('bible-livre').innerHTML = h; afficherChapitresBible(); afficherHistoriqueBible(); }
-        function afficherChapitresBible() { const l = document.getElementById('bible-livre').value; let tot = 0; for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } } const counts = appData.chapitresLus[l] || {}; let html = ''; for (let i = 1; i <= tot; i++) { let arr = counts[i] || []; let c = arr.length; let bg = c > 0 ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'; let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-500 text-black font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : ''; html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none hover:scale-105 ${bg} ${isReadOnly ? 'hide-on-readonly' : ''}">${i}${badge}</button>`; } document.getElementById('bible-chapitres-container').innerHTML = html; }
+        
+        function afficherChapitresBible() { 
+            const l = document.getElementById('bible-livre').value; 
+            let tot = 0; 
+            for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } } 
+            const counts = appData.chapitresLus[l] || {}; 
+            let html = ''; 
+            for (let i = 1; i <= tot; i++) { 
+                let arr = counts[i] || []; 
+                let c = arr.length; 
+                let bg = c > 0 ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'; 
+                let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-rose-600 text-white font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : ''; 
+                let effetSurvol = isReadOnly ? 'cursor-default opacity-90' : 'hover:scale-105 cursor-pointer';
+                html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none ${bg} ${effetSurvol}">${i}${badge}</button>`; 
+            } 
+            document.getElementById('bible-chapitres-container').innerHTML = html; 
+        }
+
         function actionChapitre(livre, chap) { if(isReadOnly)return; let modeInput = document.getElementById('mode-rem').checked ? 'remove' : 'add'; if (!appData.chapitresLus[livre]) appData.chapitresLus[livre] = {}; if (!appData.chapitresLus[livre][chap]) appData.chapitresLus[livre][chap] = []; let arr = appData.chapitresLus[livre][chap]; let now = new Date(); let dateComplete = now.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); if (modeInput === 'add') { arr.push(getToday()); appData.historiqueBible.unshift({ id: Date.now(), texte: `Lu : ${livre} ${chap}`, dateStr: dateComplete }); } else if (modeInput === 'remove' && arr.length > 0) { arr.pop(); appData.historiqueBible.unshift({ id: Date.now(), texte: `Retiré : ${livre} ${chap}`, dateStr: dateComplete }); } if (appData.historiqueBible.length > 100) appData.historiqueBible.pop(); sauvegarderDonnees(); }
         function afficherHistoriqueBible() { document.getElementById('liste-historique-bible').innerHTML = appData.historiqueBible.map(h => `<div class="flex justify-between p-2 bg-slate-950 border border-slate-800 rounded"><span>${h.texte.includes('Retiré') ? '🗑️' : '📖'} ${echapperHTML(h.texte)}</span><span class="text-slate-400 text-right">${h.dateStr}</span></div>`).join(''); }
         function renderMatieres() { document.getElementById('cours-matiere').innerHTML = appData.matieresList.map(m => `<option value="${echapperHTML(m)}">${echapperHTML(m)}</option>`).join(''); }
