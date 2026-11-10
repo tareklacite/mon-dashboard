@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- FIREBASE (Version Compat pour HTML simple) -->
+    <!-- FIREBASE (Version Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -20,14 +20,15 @@
         .badge { display: none; }
         .badge.unlocked { display: flex; }
         
-        #chrono-cours-container:fullscreen {
-            background-color: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem;
-        }
+        #chrono-cours-container:fullscreen { background-color: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; }
         #chrono-cours-container:fullscreen #chrono-cours-display { font-size: 8rem; line-height: 1; margin-bottom: 2rem; }
         #chrono-cours-container:-webkit-full-screen { background-color: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
+        
+        /* CSS MODE LECTURE SEULE (COACH) */
+        .readonly-mode .hide-on-readonly { display: none !important; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-12 relative overflow-x-hidden">
@@ -44,6 +45,12 @@
         </div>
     </div>
 
+    <!-- BANNIÈRE MODE COACH -->
+    <div id="coach-banner" class="hidden bg-sky-600 text-white text-center py-2.5 px-4 font-bold text-sm flex flex-col sm:flex-row justify-center items-center gap-3 shadow-md z-[160] sticky top-0">
+        <span>👀 MODE COACH : Tu regardes le dashboard de <span id="coach-email-display" class="bg-sky-800 px-2 py-0.5 rounded ml-1"></span></span>
+        <button onclick="quitterModeCoach()" class="bg-slate-900 text-white px-4 py-1.5 rounded-full text-xs hover:bg-slate-800 shadow transition flex items-center gap-2">❌ Retour à mon compte</button>
+    </div>
+
     <!-- ÉCRAN DE CHARGEMENT DONNÉES -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-950 z-[150] flex flex-col items-center justify-center hidden">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
@@ -54,7 +61,7 @@
 
     <!-- MAIN APP CONTENT -->
     <div id="app-content" class="hidden">
-        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
+        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg" style="top: var(--header-offset, 0px);">
             <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
                 <div class="flex items-center gap-4 w-full md:w-auto justify-between">
                     <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">🌟 Dashboard</h1>
@@ -91,63 +98,32 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-2 gap-3">
                         <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Moyennes</h2>
                         <div class="flex gap-2 items-center w-full sm:w-auto">
-                            <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
+                            <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none">
                                 <option value="tout">Depuis toujours</option>
                                 <option value="annee" selected>Par Année</option>
                                 <option value="mois">Par Mois</option>
                                 <option value="semaine">Par Semaine</option>
                                 <option value="jour">Par Jour</option>
                             </select>
-                            <select id="filtre-val-annee" onchange="calculerStatsGenerales()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none focus:border-indigo-500 transition">
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
-                                <option value="2026" selected>2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
+                            <select id="filtre-val-annee" onchange="calculerStatsGenerales()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none">
+                                <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
                             </select>
-                            <input type="month" id="filtre-val-mois" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
-                            <input type="date" id="filtre-val-semaine" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
-                            <input type="date" id="filtre-val-jour" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none focus:border-indigo-500 transition h-8">
+                            <input type="month" id="filtre-val-mois" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none h-8">
+                            <input type="date" id="filtre-val-semaine" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none h-8">
+                            <input type="date" id="filtre-val-jour" onchange="calculerStatsGenerales()" class="hidden bg-slate-950 border border-slate-700 rounded-lg p-1 text-xs text-white outline-none h-8">
                         </div>
                     </div>
                     
                     <div class="flex flex-wrap gap-4" id="stats-grid">
-                        <div id="box-stat-priere" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">PRIÈRE</span>
-                            <p id="stat-total-priere" class="text-lg font-bold text-indigo-400 mt-1">0 min</p>
-                        </div>
-                        <div id="box-stat-bible" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">BIBLE</span>
-                            <p id="stat-total-bible" class="text-lg font-bold text-sky-400 mt-1">0 chap.</p>
-                        </div>
-                        <div id="box-stat-finance" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">ÉPARGNE</span>
-                            <p id="stat-total-finance" class="text-lg font-bold text-emerald-400 mt-1">0 €</p>
-                        </div>
-                        <div id="box-stat-sport" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">SPORT</span>
-                            <p id="stat-total-sport" class="text-lg font-bold text-amber-400 mt-1">0 séa.</p>
-                        </div>
-                        <div id="box-stat-projets" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">PROJETS</span>
-                            <p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400 mt-1">0 min</p>
-                        </div>
-                        <div id="box-stat-sommeil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span>
-                            <p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200 mt-1">0 h</p>
-                        </div>
-                        <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">COUCHER (MOY.)</span>
-                            <p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
-                        </div>
-                        <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span>
-                            <p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300 mt-1">--:--</p>
-                        </div>
-                        <div id="box-stat-ecran" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
-                            <span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span>
-                            <p id="stat-avg-ecran" class="text-lg font-bold text-rose-400 mt-1">0 h</p>
-                        </div>
+                        <div id="box-stat-priere" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">PRIÈRE</span><p id="stat-total-priere" class="text-lg font-bold text-indigo-400 mt-1">0 min</p></div>
+                        <div id="box-stat-bible" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">BIBLE</span><p id="stat-total-bible" class="text-lg font-bold text-sky-400 mt-1">0 chap.</p></div>
+                        <div id="box-stat-finance" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">ÉPARGNE</span><p id="stat-total-finance" class="text-lg font-bold text-emerald-400 mt-1">0 €</p></div>
+                        <div id="box-stat-sport" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">SPORT</span><p id="stat-total-sport" class="text-lg font-bold text-amber-400 mt-1">0 séa.</p></div>
+                        <div id="box-stat-projets" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">PROJETS</span><p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400 mt-1">0 min</p></div>
+                        <div id="box-stat-sommeil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span><p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200 mt-1">0 h</p></div>
+                        <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">COUCHER (MOY.)</span><p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300 mt-1">--:--</p></div>
+                        <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span><p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300 mt-1">--:--</p></div>
+                        <div id="box-stat-ecran" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span><p id="stat-avg-ecran" class="text-lg font-bold text-rose-400 mt-1">0 h</p></div>
                     </div>
                 </div>
 
@@ -155,16 +131,16 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                         <h2 class="text-lg font-semibold text-slate-200">📊 Schémas d'activité</h2>
                         <div class="flex items-center gap-2">
-                            <button onclick="navChart(-1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">&larr; Précédent</button>
+                            <button onclick="navChart(-1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">&larr; Préc</button>
                             <div id="chart-picker-container" class="relative">
-                                <span id="chart-date-label" onclick="focusChartPicker()" class="cursor-pointer text-[10px] sm:text-xs text-slate-300 bg-slate-950 px-3 py-1.5 rounded border border-slate-800 text-center inline-block hover:border-indigo-500 transition"></span>
+                                <span id="chart-date-label" onclick="focusChartPicker()" class="cursor-pointer text-[10px] sm:text-xs text-slate-300 bg-slate-950 px-3 py-1.5 rounded border border-slate-800 text-center inline-block"></span>
                                 <input type="date" id="picker-date-input" onchange="onPickerDateChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
                                 <input type="month" id="picker-month-input" onchange="onPickerMonthChange(this.value)" class="absolute inset-0 opacity-0 cursor-pointer pointer-events-none">
                             </div>
-                            <button onclick="navChart(1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">Suivant &rarr;</button>
+                            <button onclick="navChart(1)" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded text-xs transition">Suiv &rarr;</button>
                         </div>
                         <div class="flex items-center gap-2">
-                            <select id="chartTypeSelect" onchange="changerTypeGraphique(this.value)" class="bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-xs text-indigo-300 font-medium">
+                            <select id="chartTypeSelect" onchange="changerTypeGraphique(this.value)" class="bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-xs text-indigo-300">
                                 <option value="line" selected>Courbe</option>
                                 <option value="bar">Barres</option>
                             </select>
@@ -192,9 +168,10 @@
             <section id="tab-quotidien" class="tab-content space-y-6">
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
                     <h2 class="text-lg font-semibold text-sky-300">🌙 Quotidien & Hygiène de vie</h2>
+                    
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
                         <h3 class="text-sm font-semibold text-slate-200">✅ Routine Quotidienne</h3>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 hide-on-readonly">
                             <input type="text" id="nouvelle-routine-input" placeholder="Ajouter une routine..." class="flex-1 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
                             <button onclick="ajouterRoutine()" class="bg-sky-600 px-4 py-2 rounded-lg text-xs font-bold text-white">+</button>
                         </div>
@@ -206,27 +183,27 @@
                         <div class="flex flex-col gap-3">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-slate-400 w-16">Date :</span>
-                                <input type="date" id="sommeil-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-sky-500">
+                                <input type="date" id="sommeil-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 hide-on-readonly">
                                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
                                     <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de coucher</label>
                                     <div class="flex gap-2 items-center">
-                                        <select id="coucher-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
-                                        <span class="font-bold">:</span>
-                                        <select id="coucher-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                        <select id="coucher-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center"></select>
+                                        <span>:</span>
+                                        <select id="coucher-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center"></select>
                                     </div>
                                 </div>
                                 <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
                                     <label class="text-[10px] text-slate-400 font-bold uppercase">Heure de réveil</label>
                                     <div class="flex gap-2 items-center">
-                                        <select id="reveil-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
-                                        <span class="font-bold">:</span>
-                                        <select id="reveil-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm font-bold text-white text-center"></select>
+                                        <select id="reveil-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center"></select>
+                                        <span>:</span>
+                                        <select id="reveil-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center"></select>
                                     </div>
                                 </div>
                             </div>
-                            <button onclick="enregistrerSommeilRoulette()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2.5 rounded-lg text-xs transition w-full mt-1">Calculer & Enregistrer</button>
+                            <button onclick="enregistrerSommeilRoulette()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2.5 rounded-lg text-xs w-full mt-1 hide-on-readonly">Enregistrer la nuit</button>
                             
                             <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-3 open">
                                 <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
@@ -240,9 +217,9 @@
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
                         <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
                         <div class="flex flex-wrap items-center gap-3">
-                            <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white focus:border-rose-500">
-                            <input type="number" id="ecran-heures" placeholder="Heures (ex: 4)" class="w-28 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white focus:border-rose-500">
-                            <button onclick="enregistrerTempsEcran()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">Enregistrer</button>
+                            <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                            <input type="number" id="ecran-heures" placeholder="Heures (ex: 4)" class="w-28 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white hide-on-readonly">
+                            <button onclick="enregistrerTempsEcran()" class="bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs hide-on-readonly">Enregistrer</button>
                         </div>
                         <div id="ecran-saved-info" class="mt-2 text-xs"></div>
                         <div id="impact-ecran-container" class="hidden space-y-2 mt-4 p-4 bg-rose-950/20 border border-rose-900/50 rounded-lg">
@@ -259,29 +236,32 @@
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-indigo-300">🕊️ Spirituel & Prières</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-priere"></div>
+                    
                     <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-3">
                         <div id="chrono-priere-display" class="text-4xl font-mono font-bold text-indigo-400">00:00:00</div>
-                        <div class="flex justify-center gap-2">
+                        <div class="flex justify-center gap-2 hide-on-readonly">
                             <button onclick="toggleChrono('priere')" id="btn-toggle-priere" class="bg-indigo-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
                             <button onclick="resetChrono('priere')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
                         </div>
-                        <div class="pt-3 border-t border-slate-900 flex justify-center items-center gap-2">
+                        <div class="pt-3 border-t border-slate-900 flex justify-center items-center gap-2 hide-on-readonly">
                             <span class="text-xs text-slate-400">Manuel :</span>
                             <input type="number" id="priere-manuel-min" placeholder="Min" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded-lg text-xs text-center text-white">
-                            <button onclick="ajouterPriereManuelle()" class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">+ Ajouter</button>
+                            <button onclick="ajouterPriereManuelle()" class="bg-indigo-600/30 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-medium">+ Ajouter</button>
                         </div>
                     </div>
+                    
                     <details class="bg-slate-950 rounded-xl border border-slate-800 group">
                         <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
                             <span>🕒 Historique des prières</span><span class="group-open:rotate-180 transition-transform">▼</span>
                         </summary>
                         <div class="p-4 pt-2 border-t border-slate-800"><div id="liste-prieres" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
                     </details>
+                    
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                         <h3 class="text-xs font-semibold text-sky-300 border-t border-slate-800 pt-4 mb-2">📖 Lecture Biblique</h3>
                         <div class="bg-slate-900 p-4 rounded-xl border border-slate-800" id="progression-card-bible"></div>
-                        <div class="flex flex-col sm:flex-row gap-4 items-center mt-4">
-                            <select id="bible-livre" onchange="afficherChapitresBible()" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs font-semibold text-slate-200 focus:border-sky-500"></select>
+                        <div class="flex flex-col sm:flex-row gap-4 items-center mt-4 hide-on-readonly">
+                            <select id="bible-livre" onchange="afficherChapitresBible()" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs font-semibold text-slate-200"></select>
                             <div class="flex items-center justify-center gap-4 text-xs font-medium bg-slate-900 p-2.5 rounded-lg w-full sm:w-max border border-slate-800 shrink-0">
                                 <span class="text-slate-400">Mode :</span>
                                 <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="bible-mode" id="mode-add" value="add" checked class="accent-sky-500 w-4 h-4"> +1</label>
@@ -305,7 +285,7 @@
                     <h2 class="text-lg font-semibold text-emerald-300">💰 Finances</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-finance"></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 h-fit">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 h-fit hide-on-readonly">
                             <input type="number" id="finance-montant" placeholder="Montant (€)" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
                             <input type="text" id="finance-motif" placeholder="Motif" class="w-full bg-slate-900 border border-slate-800 p-2 rounded-lg text-xs text-white">
                             <div class="flex gap-2">
@@ -329,7 +309,7 @@
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-amber-300">⚡ Sport</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-sport"></div>
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 hide-on-readonly">
                         <input type="text" id="sport-nom" placeholder="Type de séance (ex: Musculation)" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white">
                         <button onclick="ajouterSportManuel()" class="w-full bg-amber-500 text-slate-950 font-semibold py-2 rounded-lg text-xs">Enregistrer la séance</button>
                     </div>
@@ -347,37 +327,37 @@
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
                     <h2 class="text-lg font-semibold text-cyan-300">📚 Cours & Révisions</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
-                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4 hide-on-readonly">
                         <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">Gestion des Matières</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
                             <div class="flex flex-col gap-1.5">
                                 <label class="text-[10px] text-slate-400">Matière active :</label>
                                 <div class="flex gap-2">
-                                    <select id="cours-matiere" class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-200 focus:border-cyan-500"></select>
+                                    <select id="cours-matiere" class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-200"></select>
                                     <button onclick="supprimerMatiereCourante()" class="bg-rose-950/40 text-rose-400 border border-rose-900/50 px-3 py-2 rounded-lg text-xs hover:bg-rose-900/40 transition">Supprimer</button>
                                 </div>
                             </div>
                             <div class="flex flex-col gap-1.5">
                                 <label class="text-[10px] text-slate-400">Ajouter une matière :</label>
                                 <div class="flex gap-2">
-                                    <input type="text" id="nouvelle-matiere-input" placeholder="Nom..." class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white focus:border-cyan-500">
-                                    <button onclick="ajouterMatiere()" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2.5 rounded-lg text-xs font-bold text-white transition">+ Ajouter</button>
+                                    <input type="text" id="nouvelle-matiere-input" placeholder="Nom..." class="flex-1 bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white">
+                                    <button onclick="ajouterMatiere()" class="bg-cyan-600 px-4 py-2.5 rounded-lg text-xs font-bold text-white">+ Ajouter</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4" id="chrono-cours-container">
-                        <div class="flex justify-center items-center gap-2 text-xs pt-2">
-                            <span class="text-slate-400">Temps du chrono :</span>
+                        <div class="flex justify-center items-center gap-2 text-xs pt-2 hide-on-readonly">
+                            <span class="text-slate-400">Temps :</span>
                             <input type="number" id="chrono-custom-cours-min" value="25" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
                             <span>min</span>
-                            <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded text-cyan-300 transition">Appliquer</button>
+                            <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 px-3 py-1.5 rounded text-cyan-300">Appliquer</button>
                         </div>
                         <div id="chrono-cours-display" class="text-5xl font-mono font-bold text-cyan-400 my-2">00:25:00</div>
                         <div class="flex justify-center gap-2">
-                            <button onclick="toggleChrono('cours')" id="btn-toggle-cours" class="bg-cyan-600 hover:bg-cyan-500 px-5 py-2.5 rounded-xl text-xs font-semibold text-white transition">Démarrer</button>
-                            <button onclick="resetChrono('cours')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs text-slate-200 transition">Enregistrer</button>
-                            <button onclick="toggleFullscreen('chrono-cours-container')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl text-xs text-slate-200 transition" title="Plein écran">⛶</button>
+                            <button onclick="toggleChrono('cours')" id="btn-toggle-cours" class="bg-cyan-600 hover:bg-cyan-500 px-5 py-2.5 rounded-xl text-xs font-semibold text-white hide-on-readonly">Démarrer</button>
+                            <button onclick="resetChrono('cours')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs text-slate-200 hide-on-readonly">Enregistrer</button>
+                            <button onclick="toggleFullscreen('chrono-cours-container')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl text-xs text-slate-200" title="Plein écran">⛶</button>
                         </div>
                     </div>
                     <details class="bg-slate-950 rounded-xl border border-slate-800 group">
@@ -396,16 +376,16 @@
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-projets"></div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 text-center">
-                            <input type="text" id="projets-nom" placeholder="Nom du projet" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white text-center">
+                            <input type="text" id="projets-nom" placeholder="Nom du projet" class="w-full bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs text-white text-center hide-on-readonly">
                             <div id="chrono-projets-display" class="text-4xl font-mono font-bold text-fuchsia-400">00:00:00</div>
-                            <div class="flex justify-center gap-2">
+                            <div class="flex justify-center gap-2 hide-on-readonly">
                                 <button onclick="toggleChrono('projets')" id="btn-toggle-projets" class="bg-fuchsia-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
                                 <button onclick="resetChrono('projets')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
                             </div>
                         </div>
                         <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
                             <h3 class="text-xs font-semibold text-slate-300">📝 Micro-tâches</h3>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 hide-on-readonly">
                                 <input type="text" id="todo-input" placeholder="Tâche..." class="w-full bg-slate-900 border border-slate-800 p-2 rounded text-xs text-white">
                                 <button onclick="ajouterTodo()" class="bg-fuchsia-600 px-3 py-1 rounded text-xs text-white">+</button>
                             </div>
@@ -423,11 +403,36 @@
 
             <!-- TAB PARAMETRES -->
             <section id="tab-parametres" class="tab-content space-y-6">
+                <!-- NOUVEAU MODULE SOCIAL -->
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                    <h2 class="text-lg font-semibold text-sky-300">🤝 Social & Partage (Mode Coach)</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <h3 class="text-xs font-semibold text-slate-300 mb-3">Autoriser un ami à voir mes stats</h3>
+                            <div class="flex gap-2 mb-3">
+                                <input type="email" id="share-email-input" placeholder="Son adresse Gmail..." class="flex-1 bg-slate-900 border border-slate-700 p-2 rounded text-xs text-white">
+                                <button onclick="ajouterAmi()" class="bg-sky-600 hover:bg-sky-500 px-3 py-1 rounded text-xs text-white font-bold">+</button>
+                            </div>
+                            <div id="liste-amis-partages" class="space-y-1.5 text-xs max-h-32 overflow-y-auto"></div>
+                        </div>
+
+                        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col">
+                            <h3 class="text-xs font-semibold text-slate-300 mb-3">Voir le profil d'un ami</h3>
+                            <button onclick="chargerListeAmis()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg text-xs font-bold w-full mb-3 shadow">🔄 Chercher mes amis</button>
+                            <div id="amis-disponibles-container" class="space-y-2 text-xs flex-1 overflow-y-auto max-h-32">
+                                <p class="text-slate-500 text-center italic mt-2">Clique sur chercher pour voir qui a partagé avec toi.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-rose-300">🧩 Modules Actifs</h2>
-                    <div id="modules-actifs-container" class="flex flex-wrap gap-4 mt-2"></div>
+                    <div id="modules-actifs-container" class="flex flex-wrap gap-4 mt-2 hide-on-readonly"></div>
                 </div>
-                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4 hide-on-readonly">
                     <h2 class="text-lg font-semibold text-slate-200">⚙️ Configurer mes Objectifs</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs text-left text-slate-300 border-collapse">
@@ -436,13 +441,13 @@
                         </table>
                     </div>
                 </div>
+
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-indigo-300">💾 Sauvegarde manuelle (Backup)</h2>
                     <div class="flex flex-wrap gap-3 pt-2">
                         <button onclick="exporterDonnees()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-medium">📥 Exporter (JSON)</button>
-                        <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer">📤 Importer <input type="file" id="import-file" onchange="importerDonnees(event)" class="hidden" accept=".json"></label>
+                        <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium cursor-pointer hide-on-readonly">📤 Importer <input type="file" id="import-file" onchange="importerDonnees(event)" class="hidden" accept=".json"></label>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-2">Tes données sont maintenant sauvegardées automatiquement sur le Cloud. Ces boutons servent uniquement si tu veux garder une copie locale.</p>
                 </div>
             </section>
         </main>
@@ -464,25 +469,25 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let currentUser = null;
+        
+        let isReadOnly = false;
+        let myOwnDataBackup = null;
 
-        // Fonction de connexion (Force le choix du compte)
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' }); 
             auth.signInWithPopup(provider).catch(err => alert("Erreur de connexion : " + err.message));
         }
 
-        // Fonction de déconnexion (Nettoie la mémoire)
         function logout() { 
-            auth.signOut().then(() => {
-                location.reload(); 
-            }); 
+            auth.signOut().then(() => { location.reload(); }); 
         }
 
         // ==========================================
         // LOGIQUE DES DONNÉES DE L'APPLICATION
         // ==========================================
         const defaultDataStructure = {
+            ownerEmail: "", sharedWith: [],
             priereSessions: [], chapitresLus: {}, historiqueBible: [], transactions: [], sports: [], coursSessions: [], projetsSessions: [], 
             sommeil: {}, habitudes: {}, todos: [], tempsEcran: [],
             modulesActifs: { quotidien: true, spirituel: true, financier: true, sport: true, cours: true, projets: true },
@@ -498,8 +503,12 @@
         let appData = JSON.parse(JSON.stringify(defaultDataStructure));
 
         function sauvegarderDonnees() {
+            if (isReadOnly) {
+                showNotification("Mode Coach 🔒", "Modification impossible : Tu regardes le profil d'un ami.", "⚠️");
+                return; // Bloque toute modification
+            }
             if (currentUser) {
-                db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error("Erreur de sauvegarde:", err));
+                db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error(err));
             }
             calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); 
         }
@@ -521,17 +530,17 @@
                         appData = { ...defaultDataStructure, ...docSnap.data() };
                     } else {
                         let oldLocal = localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
-                        if (oldLocal) {
-                            appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
-                            showNotification("Migration ☁️", "Tes anciennes données locales ont été envoyées sur le Cloud !");
-                        }
-                        await docRef.set(appData);
+                        if (oldLocal) appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
                     }
+                    
+                    // Sécurité & Initialisation Email
+                    appData.ownerEmail = user.email;
+                    if (!appData.sharedWith) appData.sharedWith = [];
+                    await docRef.set(appData); // Sauvegarde automatique à la connexion
                     
                     lancerApplication();
                 } catch (error) {
-                    console.error("Erreur récupération données:", error);
-                    alert("Erreur de chargement des données.");
+                    console.error(error); alert("Erreur de chargement des données.");
                 }
 
                 document.getElementById('loading-overlay').classList.add('hidden');
@@ -545,24 +554,90 @@
         });
 
         // ==========================================
-        // DEMARRAGE DE L'APPLICATION
+        // LOGIQUE SOCIALE (COACH & AMIS)
         // ==========================================
-        function lancerApplication() {
-            let defaultDate = new Date().toISOString().split('T')[0];
-            document.getElementById('sommeil-date').value = defaultDate; 
-            document.getElementById('ecran-date').value = defaultDate;
-            initSommeilRouletteSelects();
-            renderModulesActifs(); 
-            applyModulesVisibility(); 
-            renderMatieres(); 
-            initSelectBible(); 
-            initChart(); 
-            calculerStatsGenerales();
+        function ajouterAmi() {
+            if(isReadOnly) return;
+            let em = document.getElementById('share-email-input').value.trim().toLowerCase();
+            if(em && em !== currentUser.email && !appData.sharedWith.includes(em)) {
+                appData.sharedWith.push(em);
+                document.getElementById('share-email-input').value = '';
+                sauvegarderDonnees();
+                afficherAmisPartages();
+                showNotification("Partage activé 🤝", `${em} peut maintenant voir ton dashboard.`);
+            }
+        }
+        function supprimerAmi(em) {
+            if(isReadOnly) return;
+            appData.sharedWith = appData.sharedWith.filter(e => e !== em);
+            sauvegarderDonnees();
+            afficherAmisPartages();
+        }
+        function afficherAmisPartages() {
+            if(!appData.sharedWith) return;
+            document.getElementById('liste-amis-partages').innerHTML = appData.sharedWith.map(em => `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-300">${echapperHTML(em)}</span><button onclick="supprimerAmi('${em}')" class="text-rose-400 font-bold px-2 hover:text-rose-300">×</button></div>`).join('');
+        }
+
+        async function chargerListeAmis() {
+            let cont = document.getElementById('amis-disponibles-container');
+            cont.innerHTML = '<div class="text-center text-slate-400 py-2">Recherche en cours... ⏳</div>';
+            try {
+                let snapshot = await db.collection('users').where('sharedWith', 'array-contains', currentUser.email).get();
+                if(snapshot.empty) {
+                    cont.innerHTML = '<div class="text-center text-slate-500 py-2">Personne n\'a partagé son dashboard avec toi.</div>'; return;
+                }
+                let html = '';
+                snapshot.forEach(doc => {
+                    let d = doc.data(); let emailAmi = d.ownerEmail || 'Ami';
+                    html += `<button onclick="voirDashboardAmi('${doc.id}', '${emailAmi}')" class="w-full bg-slate-800 hover:bg-slate-700 p-2.5 mb-2 rounded-lg border border-slate-700 text-left flex justify-between items-center transition group"><span class="text-sky-300 font-semibold">📊 Voir ${echapperHTML(emailAmi)}</span><span class="text-slate-500 group-hover:text-white transition">&rarr;</span></button>`;
+                });
+                cont.innerHTML = html;
+            } catch(e) {
+                console.error(e); cont.innerHTML = '<div class="text-center text-rose-400 py-2">Erreur. As-tu bien mis à jour les règles Firestore ?</div>';
+            }
+        }
+
+        async function voirDashboardAmi(uid, emailAmi) {
+            if(!isReadOnly) { myOwnDataBackup = JSON.parse(JSON.stringify(appData)); }
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            try {
+                let doc = await db.collection('users').doc(uid).get();
+                if(doc.exists) {
+                    appData = { ...defaultDataStructure, ...doc.data() };
+                    isReadOnly = true;
+                    document.body.classList.add('readonly-mode');
+                    document.getElementById('coach-banner').classList.remove('hidden');
+                    document.getElementById('coach-email-display').innerText = emailAmi;
+                    lancerApplication();
+                    switchTab('general');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } catch(e) {
+                alert("Erreur d'accès. L'ami a peut-être retiré son autorisation.");
+            }
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        function quitterModeCoach() {
+            if(myOwnDataBackup) {
+                appData = JSON.parse(JSON.stringify(myOwnDataBackup));
+                isReadOnly = false;
+                document.body.classList.remove('readonly-mode');
+                document.getElementById('coach-banner').classList.add('hidden');
+                lancerApplication();
+                switchTab('parametres');
+            }
         }
 
         // ==========================================
-        // RESTE DES FONCTIONS DE CALCUL
+        // DEMARRAGE ET AFFICHAGE
         // ==========================================
+        function lancerApplication() {
+            let defaultDate = new Date().toISOString().split('T')[0];
+            document.getElementById('sommeil-date').value = defaultDate; document.getElementById('ecran-date').value = defaultDate;
+            initSommeilRouletteSelects(); renderModulesActifs(); applyModulesVisibility(); renderMatieres(); initSelectBible(); initChart(); calculerStatsGenerales(); afficherAmisPartages();
+        }
+
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
         const getToday = () => new Date().toLocaleDateString('fr-FR');
         function parseDateString(ds) { let [d,m,y] = ds.split('/'); return new Date(y, m-1, d); }
@@ -571,24 +646,12 @@
         function isThisWeek(dateStr) { let date = parseDateString(dateStr); let now = new Date(); now.setHours(0,0,0,0); let day = now.getDay() || 7; let monday = new Date(now); monday.setDate(monday.getDate() - day + 1); return date >= monday; }
         function isThisMonth(dateStr) { let [d, m, y] = dateStr.split('/'); let now = new Date(); return parseInt(m) === now.getMonth() + 1 && parseInt(y) === now.getFullYear(); }
         function isThisYear(dateStr) { let [, , y] = dateStr.split('/'); return parseInt(y) === new Date().getFullYear(); }
-        function isSameWeekAsISO(dateStrFr, dateISO) {
-            let parts = dateStrFr.split('/'); let d1 = new Date(parts[2], parts[1]-1, parts[0]);
-            let d2 = new Date(dateISO); 
-            let day1 = d1.getDay() || 7; d1.setDate(d1.getDate() - day1 + 1); d1.setHours(0,0,0,0);
-            let day2 = d2.getDay() || 7; d2.setDate(d2.getDate() - day2 + 1); d2.setHours(0,0,0,0);
-            return d1.getTime() === d2.getTime();
-        }
+        function isSameWeekAsISO(dateStrFr, dateISO) { let parts = dateStrFr.split('/'); let d1 = new Date(parts[2], parts[1]-1, parts[0]); let d2 = new Date(dateISO); let day1 = d1.getDay() || 7; d1.setDate(d1.getDate() - day1 + 1); d1.setHours(0,0,0,0); let day2 = d2.getDay() || 7; d2.setDate(d2.getDate() - day2 + 1); d2.setHours(0,0,0,0); return d1.getTime() === d2.getTime(); }
         function timeStrToFloat(t) { if(!t) return null; let [h, m] = t.split(':').map(Number); return h + (m/60); }
-        function floatToTimeStr(f) {
-            if (isNaN(f) || f === null) return '--:--';
-            let h = Math.floor(f); let m = Math.round((f - h) * 60);
-            if (m === 60) { h += 1; m = 0; }
-            h = h % 24; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        }
+        function floatToTimeStr(f) { if (isNaN(f) || f === null) return '--:--'; let h = Math.floor(f); let m = Math.round((f - h) * 60); if (m === 60) { h += 1; m = 0; } h = h % 24; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); }
 
         function showNotification(title, message, icon='🔔') {
-            let cont = document.getElementById('notification-container');
-            let notif = document.createElement('div');
+            let cont = document.getElementById('notification-container'); let notif = document.createElement('div');
             notif.className = "bg-slate-800 border border-slate-700 p-3 rounded-lg shadow-2xl flex items-start gap-3 transform transition-all duration-300 translate-x-full opacity-0";
             notif.innerHTML = `<div class="text-2xl mt-1">${icon}</div><div><h4 class="text-sm font-bold text-white">${title}</h4><p class="text-xs text-slate-300 mt-1 leading-snug">${message}</p></div>`;
             cont.appendChild(notif);
@@ -622,8 +685,7 @@
         function applyModulesVisibility() {
             for (let k in modInfos) {
                 let isVisible = appData.modulesActifs[k] !== false;
-                let btn = document.getElementById('btn-' + k);
-                if (btn) btn.classList.toggle('hidden', !isVisible);
+                let btn = document.getElementById('btn-' + k); if (btn) btn.classList.toggle('hidden', !isVisible);
                 if (!isVisible && document.getElementById('tab-' + k).classList.contains('active')) switchTab('general');
             }
         }
@@ -632,8 +694,7 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('bg-indigo-600', 'text-white'); el.classList.add('text-slate-400'); });
             document.getElementById('tab-' + tabId).classList.add('active');
-            let btn = document.getElementById('btn-' + tabId); 
-            if(btn) { btn.classList.add('bg-indigo-600', 'text-white'); btn.classList.remove('text-slate-400'); }
+            let btn = document.getElementById('btn-' + tabId); if(btn) { btn.classList.add('bg-indigo-600', 'text-white'); btn.classList.remove('text-slate-400'); }
             calculerStatsGenerales();
         }
 
@@ -643,8 +704,7 @@
             let html = '';
             for (let k in appData.objectifs) {
                 if (appData.modulesActifs[objToModule[k]] === false) continue;
-                let obj = appData.objectifs[k];
-                let uOpts = '';
+                let obj = appData.objectifs[k]; let uOpts = '';
                 if(['priere', 'cours', 'projets'].includes(k)) uOpts = `<option value="min" ${obj.unite==='min'?'selected':''}>min</option><option value="h" ${obj.unite==='h'?'selected':''}>h</option>`;
                 else if(k==='finance') uOpts = `<option value="€" selected>€</option>`;
                 else if(k==='sport') uOpts = `<option value="sea" selected>séances</option>`;
@@ -655,7 +715,6 @@
         }
 
         function updateObj(k) { appData.objectifs[k].valeur = parseInt(document.getElementById(`cfg-val-${k}`).value) || 0; appData.objectifs[k].unite = document.getElementById(`cfg-unit-${k}`).value; appData.objectifs[k].periode = document.getElementById(`cfg-per-${k}`).value; sauvegarderDonnees(); }
-
         function getBibleSessions() { let s = []; for (let b in appData.chapitresLus) { for (let c in appData.chapitresLus[b]) { appData.chapitresLus[b][c].forEach(d => s.push({ date: d })); } } return s; }
 
         function getProgression(type) {
@@ -718,16 +777,16 @@
         function ajouterRoutine() { let v = document.getElementById('nouvelle-routine-input').value.trim(); if(v) { appData.routinesList.push({ id: 'id_' + Date.now(), label: v }); document.getElementById('nouvelle-routine-input').value = ''; sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
-        function afficherHabitudes() { let st = appData.habitudes[getToday()] || {}; document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { let c = st[r.id] ? 'checked' : ''; return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg">×</button></div>`; }).join(''); }
-        function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées (${coucherStr} → ${reveilStr}).`); }
-        function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
+        function afficherHabitudes() { let st = appData.habitudes[getToday()] || {}; document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { let c = st[r.id] ? 'checked' : ''; return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; }).join(''); }
+        function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées.`); }
+        function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 hide-on-readonly">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
         function supprimerSommeil(dateStr) { delete appData.sommeil[dateStr]; sauvegarderDonnees(); }
         function enregistrerTempsEcran() { let d = document.getElementById('ecran-date').value; let h = parseFloat(document.getElementById('ecran-heures').value); if(d && !isNaN(h) && h >= 0) { let dateStr = parseDateISOToFr(d); appData.tempsEcran[dateStr] = h; sauvegarderDonnees(); } }
-        function updateEcranUI() { let d = document.getElementById('ecran-date').value; if(!d) return; let dateStr = parseDateISOToFr(d); let h = appData.tempsEcran[dateStr]; let c = document.getElementById('ecran-saved-info'); let ic = document.getElementById('impact-ecran-container'); if(h !== undefined) { c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded">🗑️</button></div>`; ic.classList.remove('hidden'); let pct = Math.min(100, (h / 16) * 100); document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`; document.getElementById('bar-impact-ecran').style.width = `${pct}%`; document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; } else { c.innerHTML = ''; ic.classList.add('hidden'); } }
+        function updateEcranUI() { let d = document.getElementById('ecran-date').value; if(!d) return; let dateStr = parseDateISOToFr(d); let h = appData.tempsEcran[dateStr]; let c = document.getElementById('ecran-saved-info'); let ic = document.getElementById('impact-ecran-container'); if(h !== undefined) { c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded hide-on-readonly">🗑️</button></div>`; ic.classList.remove('hidden'); let pct = Math.min(100, (h / 16) * 100); document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`; document.getElementById('bar-impact-ecran').style.width = `${pct}%`; document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; } else { c.innerHTML = ''; ic.classList.add('hidden'); } }
         function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
         function initSelectBible() { let h = ''; for (const [t, l] of Object.entries(biblesData)) { h += `<optgroup label="${t}">`; for (const v in l) h += `<option value="${v}">${v}</option>`; h += `</optgroup>`; } document.getElementById('bible-livre').innerHTML = h; afficherChapitresBible(); afficherHistoriqueBible(); }
-        function afficherChapitresBible() { const l = document.getElementById('bible-livre').value; let tot = 0; for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } } const counts = appData.chapitresLus[l] || {}; let html = ''; for (let i = 1; i <= tot; i++) { let arr = counts[i] || []; let c = arr.length; let bg = c > 0 ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'; let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-500 text-black font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : ''; html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none hover:scale-105 ${bg}">${i}${badge}</button>`; } document.getElementById('bible-chapitres-container').innerHTML = html; }
-        function actionChapitre(livre, chap) { let modeInput = document.getElementById('mode-rem').checked ? 'remove' : 'add'; if (!appData.chapitresLus[livre]) appData.chapitresLus[livre] = {}; if (!appData.chapitresLus[livre][chap]) appData.chapitresLus[livre][chap] = []; let arr = appData.chapitresLus[livre][chap]; let now = new Date(); let dateComplete = now.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); if (modeInput === 'add') { arr.push(getToday()); appData.historiqueBible.unshift({ id: Date.now(), texte: `Lu : ${livre} ${chap}`, dateStr: dateComplete }); } else if (modeInput === 'remove' && arr.length > 0) { arr.pop(); appData.historiqueBible.unshift({ id: Date.now(), texte: `Retiré : ${livre} ${chap}`, dateStr: dateComplete }); } if (appData.historiqueBible.length > 100) appData.historiqueBible.pop(); sauvegarderDonnees(); }
+        function afficherChapitresBible() { const l = document.getElementById('bible-livre').value; let tot = 0; for (const t of Object.values(biblesData)) { if (t[l]) { tot = t[l]; break; } } const counts = appData.chapitresLus[l] || {}; let html = ''; for (let i = 1; i <= tot; i++) { let arr = counts[i] || []; let c = arr.length; let bg = c > 0 ? 'bg-sky-600 border-sky-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'; let badge = c > 1 ? `<span class="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-500 text-black font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-slate-900 shadow-sm z-10">${c}</span>` : ''; html += `<button onclick="actionChapitre('${l}', ${i})" class="relative flex items-center justify-center p-2 mt-2 rounded-lg border text-xs font-bold transition-all select-none hover:scale-105 ${bg} ${isReadOnly ? 'hide-on-readonly' : ''}">${i}${badge}</button>`; } document.getElementById('bible-chapitres-container').innerHTML = html; }
+        function actionChapitre(livre, chap) { if(isReadOnly)return; let modeInput = document.getElementById('mode-rem').checked ? 'remove' : 'add'; if (!appData.chapitresLus[livre]) appData.chapitresLus[livre] = {}; if (!appData.chapitresLus[livre][chap]) appData.chapitresLus[livre][chap] = []; let arr = appData.chapitresLus[livre][chap]; let now = new Date(); let dateComplete = now.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); if (modeInput === 'add') { arr.push(getToday()); appData.historiqueBible.unshift({ id: Date.now(), texte: `Lu : ${livre} ${chap}`, dateStr: dateComplete }); } else if (modeInput === 'remove' && arr.length > 0) { arr.pop(); appData.historiqueBible.unshift({ id: Date.now(), texte: `Retiré : ${livre} ${chap}`, dateStr: dateComplete }); } if (appData.historiqueBible.length > 100) appData.historiqueBible.pop(); sauvegarderDonnees(); }
         function afficherHistoriqueBible() { document.getElementById('liste-historique-bible').innerHTML = appData.historiqueBible.map(h => `<div class="flex justify-between p-2 bg-slate-950 border border-slate-800 rounded"><span>${h.texte.includes('Retiré') ? '🗑️' : '📖'} ${echapperHTML(h.texte)}</span><span class="text-slate-400 text-right">${h.dateStr}</span></div>`).join(''); }
         function renderMatieres() { document.getElementById('cours-matiere').innerHTML = appData.matieresList.map(m => `<option value="${echapperHTML(m)}">${echapperHTML(m)}</option>`).join(''); }
         function ajouterMatiere() { let v = document.getElementById('nouvelle-matiere-input').value.trim(); if(v && !appData.matieresList.includes(v)) { appData.matieresList.push(v); document.getElementById('nouvelle-matiere-input').value = ''; sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
@@ -736,7 +795,7 @@
         let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
         function setPomodoroMode(id, min) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.act = parseInt(min) * 60; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; updateChronoAffichage(id); }
         function toggleChrono(id) { let c = chronos[id]; let btn = document.getElementById(`btn-toggle-${id}`); if (!c.run) { c.run = true; btn.innerText = "Pause"; btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600'); c.debut = Date.now(); c.i = setInterval(() => { if (c.pMode && c.act > 0) { c.act--; if(c.act === 0) { resetChrono(id); return; } } else { c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000); } updateChronoAffichage(id); }, 1000); } else { clearInterval(c.i); c.run = false; btn.innerText = "Reprendre"; btn.classList.replace('bg-amber-600', `bg-${c.color}-600`); if(!c.pMode) c.acc = c.act; } }
-        function resetChrono(id) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); if (timeToAdd > 0) { if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: "08:00" }); if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: "07:00" }); if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: "14:00" }); showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées avec succès !`); } c.act = c.pMode ? baseMin*60 : 0; updateChronoAffichage(id); sauvegarderDonnees(); if(document.fullscreenElement) document.exitFullscreen(); }
+        function resetChrono(id) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); if (timeToAdd > 0) { if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: "08:00" }); if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: "07:00" }); if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: "14:00" }); showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées.`); } c.act = c.pMode ? baseMin*60 : 0; updateChronoAffichage(id); sauvegarderDonnees(); if(document.fullscreenElement) document.exitFullscreen(); }
         function updateChronoAffichage(id) { let s = chronos[id].act; document.getElementById(`chrono-${id}-display`).innerText = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(v => String(v).padStart(2, '0')).join(':'); }
         function toggleFullscreen(id) { let el = document.getElementById(id); if (!document.fullscreenElement) { el.requestFullscreen().catch(e => {}); } else { document.exitFullscreen(); } }
         function exporterDonnees() { let str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); let dl = document.createElement('a'); dl.setAttribute("href", str); dl.setAttribute("download", `dashboard.json`); document.body.appendChild(dl); dl.click(); dl.remove(); }
@@ -744,21 +803,21 @@
         function ajouterTodo() { let t = document.getElementById('todo-input').value.trim(); if(t) { appData.todos.unshift({ id: Date.now(), texte: t, fait: false }); document.getElementById('todo-input').value = ''; sauvegarderDonnees(); } }
         function toggleTodo(id) { let t = appData.todos.find(x => x.id === id); if(t) t.fait = !t.fait; sauvegarderDonnees(); }
         function supprimerTodo(id) { appData.todos = appData.todos.filter(x => x.id !== id); sauvegarderDonnees(); }
-        function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400">×</button></div>`).join(''); }
+        function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400 hide-on-readonly">×</button></div>`).join(''); }
         function ajouterPriereManuelle() { let m = parseInt(document.getElementById('priere-manuel-min').value); if(m>0) { appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: m, heure: "07:00" }); document.getElementById('priere-manuel-min').value = ''; sauvegarderDonnees(); } }
         function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
+        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
+        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         function supprimerProjet(id) { appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
+        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         function ajouterSportManuel() { let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
         function supprimerSport(id) { appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherSports() { document.getElementById('liste-sports').innerHTML = appData.sports.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>⚡ ${echapperHTML(s.nom)} - ${s.date}</span><button onclick="supprimerSport(${s.id})" class="text-rose-400">🗑️</button></div>`).join(''); }
+        function afficherSports() { document.getElementById('liste-sports').innerHTML = appData.sports.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>⚡ ${echapperHTML(s.nom)} - ${s.date}</span><button onclick="supprimerSport(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         function ajouterTransaction(m) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: m > 0 ? "Ajout" : "Retrait" }); sauvegarderDonnees(); }
         function ajouterTransactionPersonnalisee() { let m = parseFloat(document.getElementById('finance-montant').value); if(!isNaN(m)) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: document.getElementById('finance-motif').value.trim() || "Mouvement" }); document.getElementById('finance-montant').value = ''; document.getElementById('finance-motif').value = ''; sauvegarderDonnees(); } }
         function supprimerTransaction(id) { appData.transactions = appData.transactions.filter(t => t.id !== id); sauvegarderDonnees(); }
-        function afficherTransactions() { document.getElementById('liste-transactions').innerHTML = appData.transactions.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2">🗑️</button></div></div>`).join(''); }
+        function afficherTransactions() { document.getElementById('liste-transactions').innerHTML = appData.transactions.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2 hide-on-readonly">🗑️</button></div></div>`).join(''); }
 
         let mainChart = null, currentPeriode = 'semaine', currentChartType = 'line', chartAnchorDate = new Date();
         const colors = ['#22d3ee', '#38bdf8', '#818cf8', '#e879f9', '#f472b6', '#fbbf24', '#34d399'];
