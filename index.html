@@ -32,7 +32,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-12 relative overflow-x-hidden">
 
-    <!-- ÉCRAN DE CONNEXION (Visible par défaut tant qu'on n'est pas connecté) -->
+    <!-- ÉCRAN DE CONNEXION -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-[200] flex flex-col items-center justify-center">
         <div class="text-center space-y-6 bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl max-w-sm mx-4">
             <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">Dashboard</h1>
@@ -52,7 +52,7 @@
 
     <div id="notification-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-72"></div>
 
-    <!-- MAIN APP CONTENT (Caché au départ) -->
+    <!-- MAIN APP CONTENT -->
     <div id="app-content" class="hidden">
         <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
             <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3">
@@ -82,7 +82,6 @@
 
             <!-- TAB GENERAL -->
             <section id="tab-general" class="tab-content active space-y-6">
-                <!-- Code du TAB Général identique à la version précédente -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-indigo-300">Progression Actuelle</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium" id="general-progressions-container"></div>
@@ -191,7 +190,6 @@
 
             <!-- TAB QUOTIDIEN -->
             <section id="tab-quotidien" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
                     <h2 class="text-lg font-semibold text-sky-300">🌙 Quotidien & Hygiène de vie</h2>
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
@@ -258,7 +256,6 @@
 
             <!-- TAB SPIRITUEL -->
             <section id="tab-spirituel" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-indigo-300">🕊️ Spirituel & Prières</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-priere"></div>
@@ -304,7 +301,6 @@
 
             <!-- TAB FINANCIER -->
             <section id="tab-financier" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-emerald-300">💰 Finances</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-finance"></div>
@@ -330,7 +326,6 @@
 
             <!-- TAB SPORT -->
             <section id="tab-sport" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-amber-300">⚡ Sport</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-sport"></div>
@@ -349,7 +344,6 @@
 
             <!-- TAB COURS -->
             <section id="tab-cours" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
                     <h2 class="text-lg font-semibold text-cyan-300">📚 Cours & Révisions</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
@@ -397,7 +391,6 @@
 
             <!-- TAB PROJETS -->
             <section id="tab-projets" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-fuchsia-300">🚀 Projets Personnels</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-projets"></div>
@@ -430,7 +423,6 @@
 
             <!-- TAB PARAMETRES -->
             <section id="tab-parametres" class="tab-content space-y-6">
-                <!-- MÊME CODE QUE TON FICHIER PRÉCÉDENT -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-rose-300">🧩 Modules Actifs</h2>
                     <div id="modules-actifs-container" class="flex flex-wrap gap-4 mt-2"></div>
@@ -473,12 +465,19 @@
         const db = firebase.firestore();
         let currentUser = null;
 
-        // Fonction de connexion / déconnexion
+        // Fonction de connexion (Force le choix du compte)
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' }); 
             auth.signInWithPopup(provider).catch(err => alert("Erreur de connexion : " + err.message));
         }
-        function logout() { auth.signOut(); }
+
+        // Fonction de déconnexion (Nettoie la mémoire)
+        function logout() { 
+            auth.signOut().then(() => {
+                location.reload(); 
+            }); 
+        }
 
         // ==========================================
         // LOGIQUE DES DONNÉES DE L'APPLICATION
@@ -498,13 +497,10 @@
         
         let appData = JSON.parse(JSON.stringify(defaultDataStructure));
 
-        // NOUVEAU : Remplacer localStorage par la Base de données (Firestore)
         function sauvegarderDonnees() {
             if (currentUser) {
-                // Envoi silencieux sur le Cloud
                 db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error("Erreur de sauvegarde:", err));
             }
-            // Met à jour l'interface visuellement tout de suite
             calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); 
         }
 
@@ -513,22 +509,17 @@
         // ==========================================
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // Connecté !
                 currentUser = user;
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('loading-overlay').classList.remove('hidden');
 
                 try {
-                    // On va chercher ses données dans la base de données
                     const docRef = db.collection('users').doc(user.uid);
                     const docSnap = await docRef.get();
 
                     if (docSnap.exists) {
-                        // Il a déjà des données dans le cloud, on les fusionne pour être sûr qu'il ne manque rien
                         appData = { ...defaultDataStructure, ...docSnap.data() };
                     } else {
-                        // C'est un nouveau compte, on initialise la base avec les données par défaut
-                        // (Si on trouve de vieilles données locales, on peut les uploader)
                         let oldLocal = localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
                         if (oldLocal) {
                             appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
@@ -537,7 +528,6 @@
                         await docRef.set(appData);
                     }
                     
-                    // On démarre l'application
                     lancerApplication();
                 } catch (error) {
                     console.error("Erreur récupération données:", error);
@@ -548,7 +538,6 @@
                 document.getElementById('app-content').classList.remove('hidden');
 
             } else {
-                // Pas connecté, on affiche l'écran de login
                 currentUser = null;
                 document.getElementById('app-content').classList.add('hidden');
                 document.getElementById('login-overlay').classList.remove('hidden');
@@ -572,7 +561,7 @@
         }
 
         // ==========================================
-        // RESTE DES FONCTIONS DE CALCUL (Identique à avant)
+        // RESTE DES FONCTIONS DE CALCUL
         // ==========================================
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
         const getToday = () => new Date().toLocaleDateString('fr-FR');
@@ -726,7 +715,6 @@
             afficherHabitudes(); updateSommeilUI(); updateEcranUI();
         }
 
-        // Toutes les autres fonctions (identiques, utilisent appData et sauvegarderDonnees())
         function ajouterRoutine() { let v = document.getElementById('nouvelle-routine-input').value.trim(); if(v) { appData.routinesList.push({ id: 'id_' + Date.now(), label: v }); document.getElementById('nouvelle-routine-input').value = ''; sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
