@@ -81,7 +81,7 @@
                     <button onclick="switchTab('spirituel')" id="btn-spirituel" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🕊️ Spirituel</button>
                     <button onclick="switchTab('financier')" id="btn-financier" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">💰 Finance</button>
                     <button onclick="switchTab('sport')" id="btn-sport" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚡ Sport</button>
-                    <button onclick="switchTab('cours')" id="btn-cours" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">📚 Cours</button>
+                    <button onclick="switchTab('cours')" id="btn-cours" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">📚 Révisions</button>
                     <button onclick="switchTab('projets')" id="btn-projets" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">🚀 Projets</button>
                     <button onclick="switchTab('parametres')" id="btn-parametres" class="tab-btn px-3 py-1.5 rounded-lg font-medium transition text-slate-400 hover:text-white">⚙️ Données</button>
                 </nav>
@@ -227,7 +227,10 @@
                         <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
                         <div class="flex flex-wrap items-center gap-3">
                             <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                            <input type="number" id="ecran-heures" placeholder="Heures (ex: 4)" class="w-28 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white hide-on-readonly">
+                            <div class="flex gap-1 items-center hide-on-readonly">
+                                <select id="ecran-h" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">h</span>
+                                <select id="ecran-m" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">min</span>
+                            </div>
                             <button onclick="enregistrerTempsEcran()" class="bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs hide-on-readonly">Enregistrer</button>
                         </div>
                         <div id="ecran-saved-info" class="mt-2 text-xs"></div>
@@ -349,10 +352,10 @@
                 </div>
             </section>
 
-            <!-- TAB COURS -->
+            <!-- TAB COURS / RÉVISIONS -->
             <section id="tab-cours" class="tab-content space-y-6">
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
-                    <h2 class="text-lg font-semibold text-cyan-300">📚 Cours & Révisions</h2>
+                    <h2 class="text-lg font-semibold text-cyan-300">📚 Révisions</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4 hide-on-readonly">
                         <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">Gestion des Matières</h3>
@@ -504,7 +507,8 @@
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' }); 
-            auth.signInWithPopup(provider).catch(err => alert("Erreur de connexion : " + err.message));
+            // On utilise signInWithRedirect au lieu de signInWithPopup pour éviter le blocage Safari
+            auth.signInWithRedirect(provider).catch(err => alert("Erreur de connexion : " + err.message));
         }
 
         function logout() { 
@@ -517,7 +521,7 @@
         const defaultDataStructure = {
             ownerEmail: "", sharedWith: [], notifications: [],
             priereSessions: [], chapitresLus: {}, historiqueBible: [], transactions: [], sports: [], coursSessions: [], projetsSessions: [], 
-            sommeil: {}, habitudes: {}, todos: [], tempsEcran: [],
+            sommeil: {}, habitudes: {}, todos: [], tempsEcran: {},
             modulesActifs: { quotidien: true, spirituel: true, financier: true, sport: true, cours: true, projets: true },
             objectifs: {
                 priere: { valeur: 60, periode: 'jour', unite: 'min' }, finance: { valeur: 100, periode: 'mois', unite: '€' },
@@ -687,6 +691,7 @@
                     showNotification("Envoyé !", `Un encouragement a été envoyé ! 👏`);
                 }
             } catch(e) {
+                console.error(e);
                 showNotification("Erreur", "Impossible d'envoyer l'encouragement.", "❌");
             }
         }
@@ -698,6 +703,7 @@
             let defaultDate = new Date().toISOString().split('T')[0];
             document.getElementById('sommeil-date').value = defaultDate; document.getElementById('ecran-date').value = defaultDate;
             initSommeilRouletteSelects(); renderModulesActifs(); applyModulesVisibility(); renderMatieres(); updateBibleSelectUI(true); initChart(); calculerStatsGenerales(); afficherAmisPartages();
+            afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos();
         }
 
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
@@ -722,16 +728,24 @@
         }
 
         const biblesData = { "Ancien Testament": { "Genèse": 50, "Exode": 40, "Lévitique": 27, "Nombres": 36, "Deutéronome": 34, "Josué": 24, "Juges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24, "1 Rois": 22, "2 Rois": 25, "1 Chroniques": 29, "2 Chroniques": 36, "Esdras": 10, "Néhémie": 13, "Esther": 10, "Job": 42, "Psaumes": 150, "Proverbes": 31, "Ecclésiaste": 12, "Cantique des Cantiques": 8, "Ésaïe": 66, "Jérémie": 52, "Lamentations": 5, "Ézéchiel": 48, "Daniel": 12, "Osée": 14, "Joël": 3, "Amos": 9, "Abdias": 1, "Jonas": 4, "Michée": 7, "Nahum": 3, "Habacuc": 3, "Sophonie": 3, "Aggée": 2, "Zacharie": 14, "Malachie": 4 }, "Nouveau Testament": { "Matthieu": 28, "Marc": 16, "Luc": 24, "Jean": 21, "Actes": 28, "Romains": 16, "1 Corinthiens": 16, "2 Corinthiens": 13, "Galates": 6, "Éphésiens": 6, "Philippiens": 4, "Colossiens": 4, "1 Thessaloniciens": 5, "2 Thessaloniciens": 3, "1 Timothée": 6, "2 Timothée": 4, "Tite": 3, "Philémon": 1, "Hébreux": 13, "Jacques": 5, "1 Pierre": 5, "2 Pierre": 3, "1 Jean": 5, "2 Jean": 1, "3 Jean": 1, "Jude": 1, "Apocalypse": 22 } };
-        const modInfos = { quotidien: { label: '🌙 Quotidien' }, spirituel: { label: '🕊️ Spirituel' }, financier: { label: '💰 Finance' }, sport: { label: '⚡ Sport' }, cours: { label: '📚 Cours' }, projets: { label: '🚀 Projets' } };
+        const modInfos = { quotidien: { label: '🌙 Quotidien' }, spirituel: { label: '🕊️ Spirituel' }, financier: { label: '💰 Finance' }, sport: { label: '⚡ Sport' }, cours: { label: '📚 Révisions' }, projets: { label: '🚀 Projets' } };
         const objToModule = { priere: 'spirituel', bible: 'spirituel', finance: 'financier', sport: 'sport', cours: 'cours', projets: 'projets', sommeil: 'quotidien', ecran: 'quotidien' };
 
         function initSommeilRouletteSelects() {
             let hOpts = '', mOpts = '';
-            for(let i=0; i<24; i++) hOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}h</option>`;
-            for(let i=0; i<60; i+=5) mOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}m</option>`;
-            document.getElementById('coucher-h').innerHTML = hOpts; document.getElementById('coucher-m').innerHTML = mOpts;
-            document.getElementById('reveil-h').innerHTML = hOpts; document.getElementById('reveil-m').innerHTML = mOpts;
+            for(let i=0; i<24; i++) hOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}</option>`;
+            for(let i=0; i<60; i+=5) mOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}</option>`;
+            
+            document.getElementById('coucher-h').innerHTML = hOpts.replace(/<\/option>/g, "h</option>"); 
+            document.getElementById('coucher-m').innerHTML = mOpts.replace(/<\/option>/g, "m</option>");
+            document.getElementById('reveil-h').innerHTML = hOpts.replace(/<\/option>/g, "h</option>"); 
+            document.getElementById('reveil-m').innerHTML = mOpts.replace(/<\/option>/g, "m</option>");
             document.getElementById('coucher-h').value = "23"; document.getElementById('reveil-h').value = "07";
+            
+            document.getElementById('ecran-h').innerHTML = hOpts; 
+            document.getElementById('ecran-m').innerHTML = mOpts;
+            document.getElementById('ecran-h').value = "00";
+            document.getElementById('ecran-m').value = "00";
         }
 
         function renderModulesActifs() {
@@ -760,7 +774,7 @@
             calculerStatsGenerales();
         }
 
-        const configInfos = { priere: { label: 'Prière', color: 'indigo', icon: '🕊️' }, bible: { label: 'Bible', color: 'sky', icon: '📖' }, finance: { label: 'Épargne', color: 'emerald', icon: '💰' }, sport: { label: 'Sport', color: 'amber', icon: '⚡' }, cours: { label: 'Cours', color: 'cyan', icon: '📚' }, projets: { label: 'Projets', color: 'fuchsia', icon: '🚀' } };
+        const configInfos = { priere: { label: 'Prière', color: 'indigo', icon: '🕊️' }, bible: { label: 'Bible', color: 'sky', icon: '📖' }, finance: { label: 'Épargne', color: 'emerald', icon: '💰' }, sport: { label: 'Sport', color: 'amber', icon: '⚡' }, cours: { label: 'Révisions', color: 'cyan', icon: '📚' }, projets: { label: 'Projets', color: 'fuchsia', icon: '🚀' } };
 
         function renderConfigObjectifs() {
             let html = '';
@@ -858,11 +872,43 @@
         function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
         function afficherHabitudes() { let st = appData.habitudes[getToday()] || {}; document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { let c = st[r.id] ? 'checked' : ''; return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; }).join(''); }
+        
         function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées.`); }
         function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 hide-on-readonly">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
         function supprimerSommeil(dateStr) { delete appData.sommeil[dateStr]; sauvegarderDonnees(); }
-        function enregistrerTempsEcran() { let d = document.getElementById('ecran-date').value; let h = parseFloat(document.getElementById('ecran-heures').value); if(d && !isNaN(h) && h >= 0) { let dateStr = parseDateISOToFr(d); appData.tempsEcran[dateStr] = h; sauvegarderDonnees(); } }
-        function updateEcranUI() { let d = document.getElementById('ecran-date').value; if(!d) return; let dateStr = parseDateISOToFr(d); let h = appData.tempsEcran[dateStr]; let c = document.getElementById('ecran-saved-info'); let ic = document.getElementById('impact-ecran-container'); if(h !== undefined) { c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${h}h d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded hide-on-readonly">🗑️</button></div>`; ic.classList.remove('hidden'); let pct = Math.min(100, (h / 16) * 100); document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${h}h/16h)`; document.getElementById('bar-impact-ecran').style.width = `${pct}%`; document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${h}h, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; } else { c.innerHTML = ''; ic.classList.add('hidden'); } }
+        
+        function enregistrerTempsEcran() { 
+            let d = document.getElementById('ecran-date').value; 
+            let h = parseInt(document.getElementById('ecran-h').value) || 0;
+            let m = parseInt(document.getElementById('ecran-m').value) || 0;
+            let totalH = h + (m / 60);
+            if(d && totalH >= 0) { 
+                let dateStr = parseDateISOToFr(d); 
+                appData.tempsEcran[dateStr] = parseFloat(totalH.toFixed(2)); 
+                sauvegarderDonnees(); 
+            } 
+        }
+        function updateEcranUI() { 
+            let d = document.getElementById('ecran-date').value; 
+            if(!d) return; 
+            let dateStr = parseDateISOToFr(d); 
+            let h = appData.tempsEcran[dateStr]; 
+            let c = document.getElementById('ecran-saved-info'); 
+            let ic = document.getElementById('impact-ecran-container'); 
+            if(h !== undefined) { 
+                let hr = Math.floor(h);
+                let min = Math.round((h - hr) * 60);
+                let timeStr = hr + "h" + (min > 0 ? String(min).padStart(2, '0') : "00");
+                c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${timeStr} d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded hide-on-readonly">🗑️</button></div>`; 
+                ic.classList.remove('hidden'); 
+                let pct = Math.min(100, (h / 16) * 100); 
+                document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${timeStr}/16h)`; 
+                document.getElementById('bar-impact-ecran').style.width = `${pct}%`; 
+                document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${timeStr}, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; 
+            } else { 
+                c.innerHTML = ''; ic.classList.add('hidden'); 
+            } 
+        }
         function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
         
         function updateBibleSelectUI(init = false) { 
@@ -932,9 +978,36 @@
         function supprimerMatiereCourante() { let v = document.getElementById('cours-matiere').value; if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
         
         let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
+        
+        function getStartTimeStr(durationMin) {
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - durationMin);
+            return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+
         function setPomodoroMode(id, min) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.act = parseInt(min) * 60; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; updateChronoAffichage(id); }
         function toggleChrono(id) { let c = chronos[id]; let btn = document.getElementById(`btn-toggle-${id}`); if (!c.run) { c.run = true; btn.innerText = "Pause"; btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600'); c.debut = Date.now(); c.i = setInterval(() => { if (c.pMode && c.act > 0) { c.act--; if(c.act === 0) { resetChrono(id); return; } } else { c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000); } updateChronoAffichage(id); }, 1000); } else { clearInterval(c.i); c.run = false; btn.innerText = "Reprendre"; btn.classList.replace('bg-amber-600', `bg-${c.color}-600`); if(!c.pMode) c.acc = c.act; } }
-        function resetChrono(id) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); if (timeToAdd > 0) { if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: "08:00" }); if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: "07:00" }); if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: "14:00" }); showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées.`); } c.act = c.pMode ? baseMin*60 : 0; updateChronoAffichage(id); sauvegarderDonnees(); if(document.fullscreenElement) document.exitFullscreen(); }
+        function resetChrono(id) { 
+            let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; 
+            document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; 
+            document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); 
+            document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); 
+            
+            let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; 
+            let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); 
+            
+            if (timeToAdd > 0) { 
+                let startTime = getStartTimeStr(timeToAdd);
+                if (id === 'cours') appData.coursSessions.unshift({ id: Date.now(), date: getToday(), matiere: document.getElementById('cours-matiere').value, dureeMin: timeToAdd, heure: startTime }); 
+                if (id === 'priere') appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: timeToAdd, heure: startTime }); 
+                if (id === 'projets') appData.projetsSessions.unshift({ id: Date.now(), date: getToday(), nom: document.getElementById('projets-nom').value.trim() || 'Projet', dureeMin: timeToAdd, heure: startTime }); 
+                showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées.`); 
+            } 
+            c.act = c.pMode ? baseMin*60 : 0; 
+            updateChronoAffichage(id); 
+            sauvegarderDonnees(); 
+            if(document.fullscreenElement) document.exitFullscreen(); 
+        }
         function updateChronoAffichage(id) { let s = chronos[id].act; document.getElementById(`chrono-${id}-display`).innerText = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(v => String(v).padStart(2, '0')).join(':'); }
         function toggleFullscreen(id) { let el = document.getElementById(id); if (!document.fullscreenElement) { el.requestFullscreen().catch(e => {}); } else { document.exitFullscreen(); } }
         function exporterDonnees() { let str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); let dl = document.createElement('a'); dl.setAttribute("href", str); dl.setAttribute("download", `dashboard.json`); document.body.appendChild(dl); dl.click(); dl.remove(); }
@@ -943,13 +1016,24 @@
         function toggleTodo(id) { let t = appData.todos.find(x => x.id === id); if(t) t.fait = !t.fait; sauvegarderDonnees(); }
         function supprimerTodo(id) { appData.todos = appData.todos.filter(x => x.id !== id); sauvegarderDonnees(); }
         function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400 hide-on-readonly">×</button></div>`).join(''); }
-        function ajouterPriereManuelle() { let m = parseInt(document.getElementById('priere-manuel-min').value); if(m>0) { appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: m, heure: "07:00" }); document.getElementById('priere-manuel-min').value = ''; sauvegarderDonnees(); } }
+        
+        function ajouterPriereManuelle() { 
+            let m = parseInt(document.getElementById('priere-manuel-min').value); 
+            if(m>0) { 
+                appData.priereSessions.unshift({ id: Date.now(), date: getToday(), dureeMin: m, heure: getStartTimeStr(m) }); 
+                document.getElementById('priere-manuel-min').value = ''; 
+                sauvegarderDonnees(); 
+            } 
+        }
         function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        
         function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        
         function supprimerProjet(id) { appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        
         function ajouterSportManuel() { let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
         function supprimerSport(id) { appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherSports() { document.getElementById('liste-sports').innerHTML = appData.sports.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>⚡ ${echapperHTML(s.nom)} - ${s.date}</span><button onclick="supprimerSport(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
@@ -982,7 +1066,7 @@
 
         let mainChart = null, currentPeriode = 'semaine', currentChartType = 'line', chartAnchorDate = new Date();
         const colors = ['#22d3ee', '#38bdf8', '#818cf8', '#e879f9', '#f472b6', '#fbbf24', '#34d399'];
-        function renderChartCheckboxes() { let states = {}; document.querySelectorAll('#chart-checkboxes input').forEach(cb => states[cb.id] = cb.checked); let chks = ''; const addChk = (id, label, color, defaultState=true) => { let isChecked = states[id] !== undefined ? states[id] : defaultState; chks += `<label class="flex items-center gap-1.5 cursor-pointer font-bold" style="color:${color}"><input type="checkbox" id="${id}" ${isChecked?'checked':''} onchange="updateChart()" class="rounded" style="accent-color:${color}"> ${label}</label>`; }; if (appData.modulesActifs['spirituel'] !== false) { addChk('check-priere', 'Prière', '#818cf8'); addChk('check-bible', 'Bible', '#38bdf8'); } if (appData.modulesActifs['projets'] !== false) addChk('check-projets', 'Projets', '#e879f9'); if (appData.modulesActifs['sport'] !== false) addChk('check-sport', 'Sport', '#fbbf24'); if (appData.modulesActifs['financier'] !== false) addChk('check-finance', 'Épargne', '#34d399'); if (appData.modulesActifs['cours'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Matières (Cours) :</span>`; appData.matieresList.forEach((m, i) => addChk(`check-mat-${i}`, echapperHTML(m), colors[i % colors.length])); } if (appData.modulesActifs['quotidien'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Santé & Quotidien :</span>`; addChk('check-sommeil', 'Sommeil (h)', '#c7d2fe'); addChk('check-ecran', 'Écran (h)', '#fb7185'); appData.routinesList.forEach(r => { chks += `<label class="flex items-center gap-1.5 cursor-pointer text-slate-300"><input type="checkbox" id="check-rt-${r.id}" onchange="updateChart()" class="accent-slate-500 rounded" ${states[`check-rt-${r.id}`]?'checked':''}> ${echapperHTML(r.label)}</label>`; }); } document.getElementById('chart-checkboxes').innerHTML = chks; }
+        function renderChartCheckboxes() { let states = {}; document.querySelectorAll('#chart-checkboxes input').forEach(cb => states[cb.id] = cb.checked); let chks = ''; const addChk = (id, label, color, defaultState=true) => { let isChecked = states[id] !== undefined ? states[id] : defaultState; chks += `<label class="flex items-center gap-1.5 cursor-pointer font-bold" style="color:${color}"><input type="checkbox" id="${id}" ${isChecked?'checked':''} onchange="updateChart()" class="rounded" style="accent-color:${color}"> ${label}</label>`; }; if (appData.modulesActifs['spirituel'] !== false) { addChk('check-priere', 'Prière', '#818cf8'); addChk('check-bible', 'Bible', '#38bdf8'); } if (appData.modulesActifs['projets'] !== false) addChk('check-projets', 'Projets', '#e879f9'); if (appData.modulesActifs['sport'] !== false) addChk('check-sport', 'Sport', '#fbbf24'); if (appData.modulesActifs['financier'] !== false) addChk('check-finance', 'Épargne', '#34d399'); if (appData.modulesActifs['cours'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Matières (Révisions) :</span>`; appData.matieresList.forEach((m, i) => addChk(`check-mat-${i}`, echapperHTML(m), colors[i % colors.length])); } if (appData.modulesActifs['quotidien'] !== false) { chks += `<div class="w-full h-px bg-slate-800 my-1"></div><span class="text-slate-500 w-full mb-1">Santé & Quotidien :</span>`; addChk('check-sommeil', 'Sommeil (h)', '#c7d2fe'); addChk('check-ecran', 'Écran (h)', '#fb7185'); appData.routinesList.forEach(r => { chks += `<label class="flex items-center gap-1.5 cursor-pointer text-slate-300"><input type="checkbox" id="check-rt-${r.id}" onchange="updateChart()" class="accent-slate-500 rounded" ${states[`check-rt-${r.id}`]?'checked':''}> ${echapperHTML(r.label)}</label>`; }); } document.getElementById('chart-checkboxes').innerHTML = chks; }
         function initChart() { renderChartCheckboxes(); mainChart = new Chart(document.getElementById('mainChart').getContext('2d'), { type: currentChartType, data: getChartData(currentPeriode), options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } }, y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } } } } }); }
         function changerTypeGraphique(t) { currentChartType = t; if (mainChart) { mainChart.destroy(); initChart(); } }
         function changerPeriodeGraph(p) { currentPeriode = p; chartAnchorDate = new Date(); document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-indigo-600', 'text-white', 'font-medium'); b.classList.add('text-slate-400'); }); document.getElementById('btn-period-'+p).classList.add('bg-indigo-600', 'text-white', 'font-medium'); updateChart(); }
