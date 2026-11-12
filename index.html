@@ -239,6 +239,12 @@
                             <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="bar-impact-ecran" class="bg-gradient-to-r from-orange-500 to-rose-600 h-full w-0 transition-all"></div></div>
                             <p class="text-xs text-slate-300 mt-3 pt-3 border-t border-rose-900/30" id="ecran-comparaison-txt"></p>
                         </div>
+                        <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4">
+                            <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
+                                <span>🕒 Historique d'écran</span><span class="group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-ecran" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                        </details>
                     </div>
                 </div>
             </section>
@@ -528,7 +534,7 @@
                 sport: { valeur: 3, periode: 'semaine', unite: 'sea' }, cours: { valeur: 2, periode: 'jour', unite: 'h' },
                 projets: { valeur: 1, periode: 'jour', unite: 'h' }, bible: { valeur: 3, periode: 'jour', unite: 'chap.' }
             },
-            routinesList: [{ id: 'r1', label: 'Méditation' }, { id: 'r2', label: 'Vitamines' }],
+            routinesList: [{ id: 'r1', label: 'Méditation', createdAt: new Date().toLocaleDateString('fr-FR') }, { id: 'r2', label: 'Vitamines', createdAt: new Date().toLocaleDateString('fr-FR') }],
             matieresList: ["Mathématiques", "Physique", "Langues"]
         };
         
@@ -542,7 +548,7 @@
             if (currentUser) {
                 db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error(err));
             }
-            calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); 
+            calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); afficherHistoriqueEcran();
         }
 
         // ==========================================
@@ -703,7 +709,7 @@
             let defaultDate = new Date().toISOString().split('T')[0];
             document.getElementById('sommeil-date').value = defaultDate; document.getElementById('ecran-date').value = defaultDate;
             initSommeilRouletteSelects(); renderModulesActifs(); applyModulesVisibility(); renderMatieres(); updateBibleSelectUI(true); initChart(); calculerStatsGenerales(); afficherAmisPartages();
-            afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos();
+            afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueEcran();
         }
 
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
@@ -711,6 +717,23 @@
         function parseDateString(ds) { let [d,m,y] = ds.split('/'); return new Date(y, m-1, d); }
         function parseDateISOToFr(iso) { let [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
         
+        function joursEcoulesDepuis(dateStr) {
+            if(!dateStr) return 1;
+            let d1 = parseDateString(dateStr);
+            let d2 = new Date(); d2.setHours(0,0,0,0);
+            let diffTime = d2.getTime() - d1.getTime();
+            if(diffTime < 0) return 1;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+        
+        function getEndTimeStr(startTimeStr, durationMin) {
+            if(!startTimeStr) return '--:--';
+            let [h, m] = startTimeStr.split(':').map(Number);
+            let d = new Date();
+            d.setHours(h, m + durationMin, 0, 0);
+            return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+
         function isThisWeek(dateStr) { let date = parseDateString(dateStr); let now = new Date(); now.setHours(0,0,0,0); let day = now.getDay() || 7; let monday = new Date(now); monday.setDate(monday.getDate() - day + 1); return date >= monday; }
         function isThisMonth(dateStr) { let [d, m, y] = dateStr.split('/'); let now = new Date(); return parseInt(m) === now.getMonth() + 1 && parseInt(y) === now.getFullYear(); }
         function isThisYear(dateStr) { let [, , y] = dateStr.split('/'); return parseInt(y) === new Date().getFullYear(); }
@@ -868,10 +891,39 @@
             afficherHabitudes(); updateSommeilUI(); updateEcranUI();
         }
 
-        function ajouterRoutine() { let v = document.getElementById('nouvelle-routine-input').value.trim(); if(v) { appData.routinesList.push({ id: 'id_' + Date.now(), label: v }); document.getElementById('nouvelle-routine-input').value = ''; sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
+        function ajouterRoutine() { 
+            let v = document.getElementById('nouvelle-routine-input').value.trim(); 
+            if(v) { 
+                appData.routinesList.push({ id: 'id_' + Date.now(), label: v, createdAt: getToday() }); 
+                document.getElementById('nouvelle-routine-input').value = ''; 
+                sauvegarderDonnees(); 
+                renderChartCheckboxes(); 
+                updateChart(); 
+            } 
+        }
         function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
         function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
-        function afficherHabitudes() { let st = appData.habitudes[getToday()] || {}; document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { let c = st[r.id] ? 'checked' : ''; return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)}</span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; }).join(''); }
+        function afficherHabitudes() { 
+            let st = appData.habitudes[getToday()] || {}; 
+            let td = getToday();
+            document.getElementById('liste-habitudes').innerHTML = appData.routinesList.map(r => { 
+                let c = st[r.id] ? 'checked' : ''; 
+                let timesChecked = 0;
+                let firstCheckDate = null;
+                Object.keys(appData.habitudes).forEach(d => {
+                    if (appData.habitudes[d][r.id]) {
+                        timesChecked++;
+                        if(!firstCheckDate || parseDateString(d) < parseDateString(firstCheckDate)) {
+                            firstCheckDate = d;
+                        }
+                    }
+                });
+                let startDate = r.createdAt || firstCheckDate || td;
+                let nbJours = joursEcoulesDepuis(startDate);
+                
+                return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)} <span class="text-[10px] text-sky-400 font-bold ml-2">(${timesChecked}/${nbJours} jrs)</span></span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; 
+            }).join(''); 
+        }
         
         function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées.`); }
         function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 hide-on-readonly">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
@@ -907,9 +959,26 @@
                 document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${timeStr}, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; 
             } else { 
                 c.innerHTML = ''; ic.classList.add('hidden'); 
-            } 
+            }
+            afficherHistoriqueEcran();
         }
-        function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
+        function afficherHistoriqueEcran() {
+            let histHtml = '';
+            let sortedDates = Object.keys(appData.tempsEcran).sort((a,b) => parseDateString(b) - parseDateString(a));
+            if(sortedDates.length === 0) {
+                histHtml = '<p class="text-slate-500 italic text-center py-2">Aucun historique.</p>';
+            } else {
+                sortedDates.forEach(dateKey => {
+                    let h = appData.tempsEcran[dateKey];
+                    let hr = Math.floor(h); let min = Math.round((h - hr) * 60);
+                    let timeStr = hr + "h" + (min > 0 ? String(min).padStart(2, '0') : "00");
+                    histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>📱 <strong>${dateKey}</strong> : ${timeStr}</span><button onclick="supprimerEcran('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 hide-on-readonly">🗑️</button></div>`;
+                });
+            }
+            let container = document.getElementById('liste-historique-ecran');
+            if(container) container.innerHTML = histHtml;
+        }
+        function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); afficherHistoriqueEcran(); }
         
         function updateBibleSelectUI(init = false) { 
             let h = ''; 
@@ -1026,13 +1095,15 @@
             } 
         }
         function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        
+        // MAJ - Historique avec Plage Horaire
+        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
         function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = appData.coursSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
         function supprimerProjet(id) { appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date} à ${s.heure || '--:--'}</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = appData.projetsSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
         function ajouterSportManuel() { let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
         function supprimerSport(id) { appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
