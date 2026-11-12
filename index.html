@@ -576,7 +576,11 @@
                 return; 
             }
             if (currentUser) {
-                db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(err => console.error(err));
+                db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+                  .catch(err => {
+                      console.error("Erreur Firestore :", err);
+                      alert("Erreur de sauvegarde cloud : " + err.message);
+                  });
             }
             calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); afficherHistoriqueEcran();
         }
@@ -1085,6 +1089,7 @@
             let m = parseInt(document.getElementById('ecran-m').value) || 0;
             let totalH = h + (m / 60);
             let dateStr = parseDateISOToFr(d); 
+            if(!appData.tempsEcran) appData.tempsEcran = {};
             appData.tempsEcran[dateStr] = parseFloat(totalH.toFixed(2)); 
             sauvegarderDonnees(); 
             showNotification("Temps d'écran enregistré 📱", `${h}h${String(m).padStart(2,'0')} ajoutés.`);
@@ -1092,6 +1097,7 @@
 
         function afficherHistoriqueEcran() {
             let histHtml = '';
+            if(!appData.tempsEcran) appData.tempsEcran = {};
             let sortedDates = Object.keys(appData.tempsEcran).sort((a,b) => parseDateString(b) - parseDateString(a));
             if(sortedDates.length === 0) {
                 histHtml = '<p class="text-slate-500 italic text-center py-2">Aucun historique d\'écran.</p>';
