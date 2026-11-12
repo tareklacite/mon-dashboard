@@ -103,9 +103,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium" id="general-progressions-container"></div>
                 </div>
 
+                <!-- BLOC STATISTIQUES ET PROGRESSION -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-2 gap-3">
-                        <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Moyennes</h2>
+                        <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Évolutions</h2>
                         <div class="flex gap-2 items-center w-full sm:w-auto">
                             <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none">
                                 <option value="tout">Depuis toujours</option>
@@ -123,16 +124,49 @@
                         </div>
                     </div>
                     
-                    <div class="flex flex-wrap gap-4" id="stats-grid">
-                        <div id="box-stat-priere" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">PRIÈRE</span><p id="stat-total-priere" class="text-lg font-bold text-indigo-400 mt-1">0 min</p></div>
-                        <div id="box-stat-bible" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">BIBLE</span><p id="stat-total-bible" class="text-lg font-bold text-sky-400 mt-1">0 chap.</p></div>
-                        <div id="box-stat-finance" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">ÉPARGNE</span><p id="stat-total-finance" class="text-lg font-bold text-emerald-400 mt-1">0 €</p></div>
-                        <div id="box-stat-sport" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">SPORT</span><p id="stat-total-sport" class="text-lg font-bold text-amber-400 mt-1">0 séa.</p></div>
-                        <div id="box-stat-projets" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">PROJETS</span><p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400 mt-1">0 min</p></div>
-                        <div id="box-stat-sommeil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span><p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200 mt-1">0 h</p></div>
-                        <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">COUCHER (MOY.)</span><p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300 mt-1">--:--</p></div>
-                        <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span><p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300 mt-1">--:--</p></div>
-                        <div id="box-stat-ecran" class="flex-1 min-w-[100px] bg-slate-950 p-4 rounded-xl border border-slate-800"><span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span><p id="stat-avg-ecran" class="text-lg font-bold text-rose-400 mt-1">0 h</p></div>
+                    <!-- ENCADRÉ BILAN DYNAMIQUE -->
+                    <div id="recap-dynamique-container" class="hidden bg-slate-950/50 p-4 rounded-xl border border-indigo-900/40 text-sm">
+                        <p class="font-bold text-indigo-300 mb-1">💡 Bilan & Progression</p>
+                        <p id="recap-dynamique-texte" class="text-slate-300 text-xs leading-relaxed"></p>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4 mt-4" id="stats-grid">
+                        <div id="box-stat-priere" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">PRIÈRE</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-priere" class="text-lg font-bold text-indigo-400">0 min</p><p id="stat-trend-priere" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-bible" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">BIBLE</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-bible" class="text-lg font-bold text-sky-400">0 chap.</p><p id="stat-trend-bible" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-finance" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">ÉPARGNE</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-finance" class="text-lg font-bold text-emerald-400">0 €</p><p id="stat-trend-finance" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-sport" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">SPORT</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-sport" class="text-lg font-bold text-amber-400">0 séa.</p><p id="stat-trend-sport" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-projets" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">PROJETS</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400">0 min</p><p id="stat-trend-projets" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-sommeil" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200">0 h</p><p id="stat-trend-sommeil" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
+                        <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">COUCHER (MOY.)</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-coucher" class="text-lg font-bold text-indigo-300">--:--</p></div>
+                        </div>
+                        <div id="box-stat-sommeil-reveil" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">RÉVEIL (MOY.)</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-reveil" class="text-lg font-bold text-indigo-300">--:--</p></div>
+                        </div>
+                        <div id="box-stat-ecran" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-ecran" class="text-lg font-bold text-rose-400">0 h</p><p id="stat-trend-ecran" class="text-[10px] font-bold mb-1"></p></div>
+                        </div>
                     </div>
                 </div>
 
@@ -847,30 +881,132 @@
                 </div>
             `).join('');
         }
+        
+        function formatTrendIndicator(curr, prev, inverted = false) {
+            if (curr === 0 && prev === 0) return { html: '', raw: 0 };
+            if (prev === 0 && curr > 0) return { html: `<span class="${inverted ? 'text-rose-400' : 'text-emerald-400'}">▲ +100%</span>`, raw: 100 };
+            let pct = ((curr - prev) / prev) * 100;
+            if (pct === 0) return { html: `<span class="text-slate-500">▶ 0%</span>`, raw: 0 };
+            let sign = pct > 0 ? '+' : '';
+            let arrow = pct > 0 ? '▲' : '▼';
+            let isGood = pct > 0;
+            if (inverted) isGood = !isGood;
+            return {
+                html: `<span class="${isGood ? 'text-emerald-400' : 'text-rose-400'}">${arrow} ${sign}${pct.toFixed(0)}%</span>`,
+                raw: pct
+            };
+        }
 
         function calculerStatsGenerales() {
             renderConfigObjectifs();
-            let tFiltre = document.getElementById('filtre-type-totaux').value; let vAnnee = document.getElementById('filtre-val-annee').value; let vMois = document.getElementById('filtre-val-mois').value; let vSem = document.getElementById('filtre-val-semaine').value; let vJour = document.getElementById('filtre-val-jour').value;
+            let tFiltre = document.getElementById('filtre-type-totaux').value; let vAnnee = parseInt(document.getElementById('filtre-val-annee').value); let vMois = document.getElementById('filtre-val-mois').value; let vSem = document.getElementById('filtre-val-semaine').value; let vJour = document.getElementById('filtre-val-jour').value;
+            
+            // Filtre Période Courante
             let filterFn = (d) => { if (!d) return false; if (tFiltre === 'tout') return true; if (tFiltre === 'annee') return d.endsWith('/' + vAnnee); if (tFiltre === 'mois' && vMois) { let parts = d.split('/'); return parts[1] === vMois.substring(5,7) && parts[2] === vMois.substring(0,4); } if (tFiltre === 'jour' && vJour) { let parts = d.split('/'); return parts[0] === vJour.substring(8,10) && parts[1] === vJour.substring(5,7) && parts[2] === vJour.substring(0,4); } if (tFiltre === 'semaine' && vSem) return isSameWeekAsISO(d, vSem); return true; };
+            
+            // Filtre Période Précédente
+            let filterPrevFn = (d) => {
+                if (!d || tFiltre === 'tout') return false;
+                if (tFiltre === 'annee') return d.endsWith('/' + (vAnnee - 1));
+                if (tFiltre === 'mois' && vMois) {
+                    let dObj = new Date(vMois + '-01'); dObj.setMonth(dObj.getMonth() - 1);
+                    let prevMStr = dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0');
+                    let parts = d.split('/'); return parts[1] === prevMStr.substring(5,7) && parts[2] === prevMStr.substring(0,4);
+                }
+                if (tFiltre === 'semaine' && vSem) {
+                    let dObj = new Date(vSem); dObj.setDate(dObj.getDate() - 7);
+                    return isSameWeekAsISO(d, dObj.toISOString().split('T')[0]);
+                }
+                if (tFiltre === 'jour' && vJour) {
+                    let dObj = new Date(vJour); dObj.setDate(dObj.getDate() - 1);
+                    let prevJStr = dObj.toISOString().split('T')[0]; let parts = d.split('/');
+                    return parts[0] === prevJStr.substring(8,10) && parts[1] === prevJStr.substring(5,7) && parts[2] === prevJStr.substring(0,4);
+                }
+                return false;
+            };
             
             ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => { let mod = objToModule[k]; let box = document.getElementById('box-stat-' + k); if(box) box.classList.toggle('hidden', appData.modulesActifs[mod] === false); });
             document.getElementById('box-stat-sommeil-coucher').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false); document.getElementById('box-stat-sommeil-reveil').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false);
             
-            let aFin = appData.transactions.filter(t=>filterFn(t.date)).reduce((a,t)=>a+t.montant, 0);
-            document.getElementById('stat-total-priere').innerText = appData.priereSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0) + " min";
-            document.getElementById('stat-total-finance').innerText = aFin + " €";
-            document.getElementById('stat-total-sport').innerText = appData.sports.filter(s=>filterFn(s.date)).length + " séa.";
-            document.getElementById('stat-total-projets').innerText = appData.projetsSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0) + " min";
-            document.getElementById('stat-total-bible').innerText = getBibleSessions().filter(s=>filterFn(s.date)).length + " chap.";
+            // Valeurs Courantes
+            let curFin = appData.transactions.filter(t=>filterFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
+            let curPri = appData.priereSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+            let curSpo = appData.sports.filter(s=>filterFn(s.date)).length;
+            let curPro = appData.projetsSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+            let curBib = getBibleSessions().filter(s=>filterFn(s.date)).length;
+
+            document.getElementById('stat-total-priere').innerText = curPri + " min";
+            document.getElementById('stat-total-finance').innerText = curFin + " €";
+            document.getElementById('stat-total-sport').innerText = curSpo + " séa.";
+            document.getElementById('stat-total-projets').innerText = curPro + " min";
+            document.getElementById('stat-total-bible').innerText = curBib + " chap.";
+
+            let ecranKeys = Object.keys(appData.tempsEcran).filter(filterFn); let avgEcran = ecranKeys.length ? parseFloat((ecranKeys.reduce((a, k) => a + appData.tempsEcran[k], 0) / ecranKeys.length).toFixed(1)) : 0;
+            document.getElementById('stat-avg-ecran').innerText = avgEcran + " h";
 
             let sommeilKeys = Object.keys(appData.sommeil).filter(filterFn); let sCoucherSum = 0, sCoucherCount = 0, sReveilSum = 0, sReveilCount = 0, totalDuree = 0;
             sommeilKeys.forEach(k => { let s = appData.sommeil[k]; totalDuree += s.duree; if (s.coucher) { let f = timeStrToFloat(s.coucher); if(f < 12) f += 24; sCoucherSum += f; sCoucherCount++; } if (s.reveil) { let f = timeStrToFloat(s.reveil); sReveilSum += f; sReveilCount++; } });
-            document.getElementById('stat-avg-sommeil').innerText = sommeilKeys.length ? (totalDuree / sommeilKeys.length).toFixed(1) + " h" : "0 h";
+            let avgSommeil = sommeilKeys.length ? parseFloat((totalDuree / sommeilKeys.length).toFixed(1)) : 0;
+            document.getElementById('stat-avg-sommeil').innerText = avgSommeil + " h";
             document.getElementById('stat-avg-coucher').innerText = sCoucherCount ? floatToTimeStr(sCoucherSum / sCoucherCount) : "--:--";
             document.getElementById('stat-avg-reveil').innerText = sReveilCount ? floatToTimeStr(sReveilSum / sReveilCount) : "--:--";
 
-            let ecranKeys = Object.keys(appData.tempsEcran).filter(filterFn); let avgEcran = ecranKeys.length ? (ecranKeys.reduce((a, k) => a + appData.tempsEcran[k], 0) / ecranKeys.length).toFixed(1) : 0;
-            document.getElementById('stat-avg-ecran').innerText = avgEcran + " h";
+            // Valeurs Précédentes et Affichage des Trends
+            let prevFin = appData.transactions.filter(t=>filterPrevFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
+            let prevPri = appData.priereSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+            let prevSpo = appData.sports.filter(s=>filterPrevFn(s.date)).length;
+            let prevPro = appData.projetsSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+            let prevBib = getBibleSessions().filter(s=>filterPrevFn(s.date)).length;
+            
+            let eKeysP = Object.keys(appData.tempsEcran).filter(filterPrevFn); let prevAvgEcran = eKeysP.length ? parseFloat((eKeysP.reduce((a, k) => a + appData.tempsEcran[k], 0) / eKeysP.length).toFixed(1)) : 0;
+            let sKeysP = Object.keys(appData.sommeil).filter(filterPrevFn); let pTotalDuree = sKeysP.reduce((acc,k) => acc + appData.sommeil[k].duree, 0); let prevAvgSommeil = sKeysP.length ? parseFloat((pTotalDuree / sKeysP.length).toFixed(1)) : 0;
+
+            let trPri = formatTrendIndicator(curPri, prevPri);
+            let trBib = formatTrendIndicator(curBib, prevBib);
+            let trFin = formatTrendIndicator(curFin, prevFin);
+            let trSpo = formatTrendIndicator(curSpo, prevSpo);
+            let trPro = formatTrendIndicator(curPro, prevPro);
+            let trSom = formatTrendIndicator(avgSommeil, prevAvgSommeil);
+            let trEcr = formatTrendIndicator(avgEcran, prevAvgEcran, true); // inverted color
+
+            document.getElementById('stat-trend-priere').innerHTML = trPri.html;
+            document.getElementById('stat-trend-bible').innerHTML = trBib.html;
+            document.getElementById('stat-trend-finance').innerHTML = trFin.html;
+            document.getElementById('stat-trend-sport').innerHTML = trSpo.html;
+            document.getElementById('stat-trend-projets').innerHTML = trPro.html;
+            document.getElementById('stat-trend-sommeil').innerHTML = trSom.html;
+            document.getElementById('stat-trend-ecran').innerHTML = trEcr.html;
+
+            // BILAN DYNAMIQUE
+            let recapCont = document.getElementById('recap-dynamique-container');
+            let recapTexte = document.getElementById('recap-dynamique-texte');
+            if (tFiltre === 'tout' || (curPri===0 && prevPri===0 && curSpo===0 && prevSpo===0 && curBib===0)) {
+                recapCont.classList.add('hidden');
+            } else {
+                recapCont.classList.remove('hidden');
+                let recaps = [];
+                if(trPri.raw > 0) recaps.push(`tes prières (<span class="text-emerald-400 font-bold">+${trPri.raw.toFixed(0)}%</span>)`);
+                if(trBib.raw > 0) recaps.push(`ta lecture de la Bible (<span class="text-emerald-400 font-bold">+${trBib.raw.toFixed(0)}%</span>)`);
+                if(trSpo.raw > 0) recaps.push(`ton sport (<span class="text-emerald-400 font-bold">+${trSpo.raw.toFixed(0)}%</span>)`);
+                if(trPro.raw > 0) recaps.push(`le temps sur tes projets (<span class="text-emerald-400 font-bold">+${trPro.raw.toFixed(0)}%</span>)`);
+                
+                let intro = "Par rapport à la période précédente, ";
+                if(recaps.length > 1) {
+                    recapTexte.innerHTML = intro + `tu as de très belles augmentations, notamment sur ${recaps.slice(0, -1).join(', ')} et ${recaps[recaps.length - 1]}. 👏 Continue sur cette lancée !`;
+                } else if(recaps.length === 1) {
+                    recapTexte.innerHTML = intro + `tu t'es bien amélioré(e) sur ${recaps[0]}. Bien joué !`;
+                } else {
+                    let baisses = [];
+                    if(trPri.raw < 0) baisses.push(`tes prières`); if(trSpo.raw < 0) baisses.push(`ton sport`);
+                    if(baisses.length > 0) {
+                        recapTexte.innerHTML = intro + `on observe une légère baisse sur ${baisses.join(' et ')}. ⚠️ Rien de grave, c'est l'occasion de te fixer un petit challenge pour la suite !`;
+                    } else {
+                        recapTexte.innerHTML = intro + `ton rythme semble s'être maintenu de façon stable.`;
+                    }
+                }
+                
+                if (trEcr.raw < 0) recapTexte.innerHTML += ` <br>✨ Point fort : tu as réduit ton temps d'écran moyen !`;
+            }
 
             let genProgHtml = '';
             for (let k in appData.objectifs) {
@@ -1095,8 +1231,6 @@
             } 
         }
         function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        
-        // MAJ - Historique avec Plage Horaire
         function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = appData.priereSessions.map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
         function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
