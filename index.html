@@ -108,7 +108,6 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
                         <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between">
                             <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus</h2>
-                            <!-- CASE À COCHER POUR ACTIVER LES ÉVOLUTIONS -->
                             <label class="flex items-center gap-2 cursor-pointer bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-indigo-300 font-medium hover:border-indigo-500/50 transition select-none">
                                 <input type="checkbox" id="toggle-evolution" onchange="calculerStatsGenerales()" class="accent-indigo-500 w-4 h-4 rounded">
                                 <span>Afficher les pourcentages d'évolution 📈</span>
@@ -131,7 +130,6 @@
                         </div>
                     </div>
                     
-                    <!-- ENCADRÉ BILAN DYNAMIQUE (Affiché uniquement si option cochée) -->
                     <div id="recap-dynamique-container" class="hidden bg-slate-950/50 p-4 rounded-xl border border-indigo-900/40 text-sm">
                         <p class="font-bold text-indigo-300 mb-1">💡 Bilan & Progression</p>
                         <p id="recap-dynamique-texte" class="text-slate-300 text-xs leading-relaxed"></p>
@@ -267,24 +265,18 @@
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
                         <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
                         <div class="flex flex-wrap items-center gap-3">
-                            <input type="date" id="ecran-date" onchange="updateEcranUI()" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
+                            <input type="date" id="ecran-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
                             <div class="flex gap-1 items-center hide-on-readonly">
                                 <select id="ecran-h" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">h</span>
                                 <select id="ecran-m" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">min</span>
                             </div>
-                            <button onclick="enregistrerTempsEcran()" class="bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg text-xs hide-on-readonly">Enregistrer</button>
+                            <button onclick="enregistrerTempsEcran()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2 rounded-lg text-xs hide-on-readonly">Enregistrer</button>
                         </div>
-                        <div id="ecran-saved-info" class="mt-2 text-xs"></div>
-                        <div id="impact-ecran-container" class="hidden space-y-2 mt-4 p-4 bg-rose-950/20 border border-rose-900/50 rounded-lg">
-                            <p class="text-xs font-bold text-rose-400 mb-1" id="ecran-pourcentage-txt"></p>
-                            <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="bar-impact-ecran" class="bg-gradient-to-r from-orange-500 to-rose-600 h-full w-0 transition-all"></div></div>
-                            <p class="text-xs text-slate-300 mt-3 pt-3 border-t border-rose-900/30" id="ecran-comparaison-txt"></p>
-                        </div>
-                        <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4">
+                        <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4 open">
                             <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
                                 <span>🕒 Historique d'écran</span><span class="group-open:rotate-180 transition-transform">▼</span>
                             </summary>
-                            <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-ecran" class="space-y-2 max-h-40 overflow-y-auto text-xs"></div></div>
+                            <div class="p-3 pt-2 border-t border-slate-800"><div id="liste-historique-ecran" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div></div>
                         </details>
                     </div>
                 </div>
@@ -344,7 +336,6 @@
                     <h2 class="text-lg font-semibold text-emerald-300">💰 Finances</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-finance"></div>
                     
-                    <!-- BARRE DE BUDGET MENSUEL -->
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
                         <div class="flex justify-between items-end">
                             <div>
@@ -480,7 +471,6 @@
 
             <!-- TAB PARAMETRES -->
             <section id="tab-parametres" class="tab-content space-y-6">
-                <!-- NOUVEAU MODULE SOCIAL -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
                     <h2 class="text-lg font-semibold text-sky-300">🤝 Social & Partage (Mode Coach)</h2>
                     
@@ -605,7 +595,6 @@
                     const docSnap = await docRef.get();
 
                     if (docSnap.exists) {
-                        // Fusion intelligente pour ne rien perdre des nouvelles propriétés et des données cloud
                         appData = { ...defaultDataStructure, ...docSnap.data() };
                         if (!appData.tempsEcran) appData.tempsEcran = {};
                     } else {
@@ -617,7 +606,6 @@
                     if (!appData.sharedWith) appData.sharedWith = [];
                     if (!appData.notifications) appData.notifications = [];
                     
-                    // Sauvegarde propre avec merge pour sécuriser
                     await docRef.set(appData, { merge: true }); 
                     
                     lancerApplication();
@@ -966,14 +954,12 @@
             let recapTexte = document.getElementById('recap-dynamique-texte');
 
             if (!showEvolution) {
-                // Masquer tous les indicateurs d'évolution si la case est décochée
                 ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => {
                     let el = document.getElementById('stat-trend-' + k);
                     if(el) el.classList.add('hidden');
                 });
                 recapCont.classList.add('hidden');
             } else {
-                // Afficher et calculer si la case est cochée
                 let prevFin = appData.transactions.filter(t=>filterPrevFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
                 let prevPri = appData.priereSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
                 let prevSpo = appData.sports.filter(s=>filterPrevFn(s.date)).length;
@@ -1051,7 +1037,7 @@
             document.getElementById('streak-count').innerText = stk;
             
             evaluerBadges(stk);
-            afficherHabitudes(); updateSommeilUI(); updateEcranUI();
+            afficherHabitudes(); updateSommeilUI(); afficherHistoriqueEcran();
         }
 
         function ajouterRoutine() { 
@@ -1094,42 +1080,21 @@
         
         function enregistrerTempsEcran() { 
             let d = document.getElementById('ecran-date').value; 
+            if(!d) { alert("Veuillez sélectionner une date."); return; }
             let h = parseInt(document.getElementById('ecran-h').value) || 0;
             let m = parseInt(document.getElementById('ecran-m').value) || 0;
             let totalH = h + (m / 60);
-            if(d && totalH >= 0) { 
-                let dateStr = parseDateISOToFr(d); 
-                appData.tempsEcran[dateStr] = parseFloat(totalH.toFixed(2)); 
-                sauvegarderDonnees(); 
-            } 
-        }
-        function updateEcranUI() { 
-            let d = document.getElementById('ecran-date').value; 
-            if(!d) return; 
             let dateStr = parseDateISOToFr(d); 
-            let h = appData.tempsEcran[dateStr]; 
-            let c = document.getElementById('ecran-saved-info'); 
-            let ic = document.getElementById('impact-ecran-container'); 
-            if(h !== undefined) { 
-                let hr = Math.floor(h);
-                let min = Math.round((h - hr) * 60);
-                let timeStr = hr + "h" + (min > 0 ? String(min).padStart(2, '0') : "00");
-                c.innerHTML = `<div class="flex justify-between items-center bg-slate-900 p-2 rounded border border-rose-900/50"><span class="text-rose-400 font-medium">✅ Enregistré : ${timeStr} d'écran</span><button onclick="supprimerEcran('${dateStr}')" class="text-rose-400 bg-rose-950/40 px-2 py-1 rounded hide-on-readonly">🗑️</button></div>`; 
-                ic.classList.remove('hidden'); 
-                let pct = Math.min(100, (h / 16) * 100); 
-                document.getElementById('ecran-pourcentage-txt').innerText = `Ton écran te prend ${Math.round(pct)}% de ta journée d'éveil ! (${timeStr}/16h)`; 
-                document.getElementById('bar-impact-ecran').style.width = `${pct}%`; 
-                document.getElementById('ecran-comparaison-txt').innerHTML = `💡 Avec ces ${timeStr}, tu aurais pu accomplir :<br>- ~${Math.round(h)} séances de sport.<br>- Lire ~${Math.round(h * 10)} chapitres bibliques.`; 
-            } else { 
-                c.innerHTML = ''; ic.classList.add('hidden'); 
-            }
-            afficherHistoriqueEcran();
+            appData.tempsEcran[dateStr] = parseFloat(totalH.toFixed(2)); 
+            sauvegarderDonnees(); 
+            showNotification("Temps d'écran enregistré 📱", `${h}h${String(m).padStart(2,'0')} ajoutés.`);
         }
+
         function afficherHistoriqueEcran() {
             let histHtml = '';
             let sortedDates = Object.keys(appData.tempsEcran).sort((a,b) => parseDateString(b) - parseDateString(a));
             if(sortedDates.length === 0) {
-                histHtml = '<p class="text-slate-500 italic text-center py-2">Aucun historique.</p>';
+                histHtml = '<p class="text-slate-500 italic text-center py-2">Aucun historique d\'écran.</p>';
             } else {
                 sortedDates.forEach(dateKey => {
                     let h = appData.tempsEcran[dateKey];
@@ -1141,7 +1106,7 @@
             let container = document.getElementById('liste-historique-ecran');
             if(container) container.innerHTML = histHtml;
         }
-        function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); afficherHistoriqueEcran(); }
+        function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
         
         function updateBibleSelectUI(init = false) { 
             let h = ''; 
