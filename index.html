@@ -103,10 +103,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium" id="general-progressions-container"></div>
                 </div>
 
-                <!-- BLOC STATISTIQUES ET PROGRESSION -->
+                <!-- BLOC STATISTIQUES ET OPTION D'ÉVOLUTION -->
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-2 gap-3">
-                        <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus & Évolutions</h2>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto justify-between">
+                            <h2 class="text-sm font-semibold text-slate-400 uppercase">Totaux Absolus</h2>
+                            <!-- CASE À COCHER POUR ACTIVER LES ÉVOLUTIONS -->
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-indigo-300 font-medium hover:border-indigo-500/50 transition select-none">
+                                <input type="checkbox" id="toggle-evolution" onchange="calculerStatsGenerales()" class="accent-indigo-500 w-4 h-4 rounded">
+                                <span>Afficher les pourcentages d'évolution 📈</span>
+                            </label>
+                        </div>
                         <div class="flex gap-2 items-center w-full sm:w-auto">
                             <select id="filtre-type-totaux" onchange="updateFiltresTotauxUI()" class="bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-white outline-none">
                                 <option value="tout">Depuis toujours</option>
@@ -124,7 +131,7 @@
                         </div>
                     </div>
                     
-                    <!-- ENCADRÉ BILAN DYNAMIQUE -->
+                    <!-- ENCADRÉ BILAN DYNAMIQUE (Affiché uniquement si option cochée) -->
                     <div id="recap-dynamique-container" class="hidden bg-slate-950/50 p-4 rounded-xl border border-indigo-900/40 text-sm">
                         <p class="font-bold text-indigo-300 mb-1">💡 Bilan & Progression</p>
                         <p id="recap-dynamique-texte" class="text-slate-300 text-xs leading-relaxed"></p>
@@ -133,27 +140,27 @@
                     <div class="flex flex-wrap gap-4 mt-4" id="stats-grid">
                         <div id="box-stat-priere" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">PRIÈRE</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-total-priere" class="text-lg font-bold text-indigo-400">0 min</p><p id="stat-trend-priere" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-priere" class="text-lg font-bold text-indigo-400">0 min</p><p id="stat-trend-priere" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-bible" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">BIBLE</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-total-bible" class="text-lg font-bold text-sky-400">0 chap.</p><p id="stat-trend-bible" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-bible" class="text-lg font-bold text-sky-400">0 chap.</p><p id="stat-trend-bible" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-finance" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">ÉPARGNE</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-total-finance" class="text-lg font-bold text-emerald-400">0 €</p><p id="stat-trend-finance" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-finance" class="text-lg font-bold text-emerald-400">0 €</p><p id="stat-trend-finance" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-sport" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">SPORT</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-total-sport" class="text-lg font-bold text-amber-400">0 séa.</p><p id="stat-trend-sport" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-sport" class="text-lg font-bold text-amber-400">0 séa.</p><p id="stat-trend-sport" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-projets" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">PROJETS</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400">0 min</p><p id="stat-trend-projets" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-total-projets" class="text-lg font-bold text-fuchsia-400">0 min</p><p id="stat-trend-projets" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-sommeil" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">SOMMEIL (MOY.)</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200">0 h</p><p id="stat-trend-sommeil" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-sommeil" class="text-lg font-bold text-indigo-200">0 h</p><p id="stat-trend-sommeil" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                         <div id="box-stat-sommeil-coucher" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">COUCHER (MOY.)</span>
@@ -165,7 +172,7 @@
                         </div>
                         <div id="box-stat-ecran" class="flex-1 min-w-[110px] bg-slate-950 p-4 rounded-xl border border-slate-800">
                             <span class="text-[10px] text-slate-400">ÉCRAN (MOY.)</span>
-                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-ecran" class="text-lg font-bold text-rose-400">0 h</p><p id="stat-trend-ecran" class="text-[10px] font-bold mb-1"></p></div>
+                            <div class="flex items-end justify-between mt-1"><p id="stat-avg-ecran" class="text-lg font-bold text-rose-400">0 h</p><p id="stat-trend-ecran" class="text-[10px] font-bold mb-1 hidden"></p></div>
                         </div>
                     </div>
                 </div>
@@ -547,7 +554,6 @@
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' }); 
-            // On utilise signInWithRedirect au lieu de signInWithPopup pour éviter le blocage Safari
             auth.signInWithRedirect(provider).catch(err => alert("Erreur de connexion : " + err.message));
         }
 
@@ -580,13 +586,13 @@
                 return; 
             }
             if (currentUser) {
-                db.collection('users').doc(currentUser.uid).set(appData).catch(err => console.error(err));
+                db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(err => console.error(err));
             }
             calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); afficherHistoriqueEcran();
         }
 
         // ==========================================
-        // ECOUTEUR DE CONNEXION FIREBASE
+        // ECOUTEUR DE CONNEXION FIREBASE (SÉCURISÉ)
         // ==========================================
         auth.onAuthStateChanged(async (user) => {
             if (user) {
@@ -599,7 +605,9 @@
                     const docSnap = await docRef.get();
 
                     if (docSnap.exists) {
+                        // Fusion intelligente pour ne rien perdre des nouvelles propriétés et des données cloud
                         appData = { ...defaultDataStructure, ...docSnap.data() };
+                        if (!appData.tempsEcran) appData.tempsEcran = {};
                     } else {
                         let oldLocal = localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
                         if (oldLocal) appData = { ...defaultDataStructure, ...JSON.parse(oldLocal) };
@@ -608,11 +616,12 @@
                     appData.ownerEmail = user.email;
                     if (!appData.sharedWith) appData.sharedWith = [];
                     if (!appData.notifications) appData.notifications = [];
-                    await docRef.set(appData); 
+                    
+                    // Sauvegarde propre avec merge pour sécuriser
+                    await docRef.set(appData, { merge: true }); 
                     
                     lancerApplication();
 
-                    // Affichage des notifications reçues
                     if (appData.notifications.length > 0) {
                         let hasUnread = false;
                         appData.notifications.forEach(n => {
@@ -899,12 +908,15 @@
 
         function calculerStatsGenerales() {
             renderConfigObjectifs();
-            let tFiltre = document.getElementById('filtre-type-totaux').value; let vAnnee = parseInt(document.getElementById('filtre-val-annee').value); let vMois = document.getElementById('filtre-val-mois').value; let vSem = document.getElementById('filtre-val-semaine').value; let vJour = document.getElementById('filtre-val-jour').value;
+            let showEvolution = document.getElementById('toggle-evolution').checked;
+            let tFiltre = document.getElementById('filtre-type-totaux').value; 
+            let vAnnee = parseInt(document.getElementById('filtre-val-annee').value); 
+            let vMois = document.getElementById('filtre-val-mois').value; 
+            let vSem = document.getElementById('filtre-val-semaine').value; 
+            let vJour = document.getElementById('filtre-val-jour').value;
             
-            // Filtre Période Courante
             let filterFn = (d) => { if (!d) return false; if (tFiltre === 'tout') return true; if (tFiltre === 'annee') return d.endsWith('/' + vAnnee); if (tFiltre === 'mois' && vMois) { let parts = d.split('/'); return parts[1] === vMois.substring(5,7) && parts[2] === vMois.substring(0,4); } if (tFiltre === 'jour' && vJour) { let parts = d.split('/'); return parts[0] === vJour.substring(8,10) && parts[1] === vJour.substring(5,7) && parts[2] === vJour.substring(0,4); } if (tFiltre === 'semaine' && vSem) return isSameWeekAsISO(d, vSem); return true; };
             
-            // Filtre Période Précédente
             let filterPrevFn = (d) => {
                 if (!d || tFiltre === 'tout') return false;
                 if (tFiltre === 'annee') return d.endsWith('/' + (vAnnee - 1));
@@ -928,7 +940,6 @@
             ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => { let mod = objToModule[k]; let box = document.getElementById('box-stat-' + k); if(box) box.classList.toggle('hidden', appData.modulesActifs[mod] === false); });
             document.getElementById('box-stat-sommeil-coucher').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false); document.getElementById('box-stat-sommeil-reveil').classList.toggle('hidden', appData.modulesActifs['quotidien'] === false);
             
-            // Valeurs Courantes
             let curFin = appData.transactions.filter(t=>filterFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
             let curPri = appData.priereSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
             let curSpo = appData.sports.filter(s=>filterFn(s.date)).length;
@@ -951,61 +962,77 @@
             document.getElementById('stat-avg-coucher').innerText = sCoucherCount ? floatToTimeStr(sCoucherSum / sCoucherCount) : "--:--";
             document.getElementById('stat-avg-reveil').innerText = sReveilCount ? floatToTimeStr(sReveilSum / sReveilCount) : "--:--";
 
-            // Valeurs Précédentes et Affichage des Trends
-            let prevFin = appData.transactions.filter(t=>filterPrevFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
-            let prevPri = appData.priereSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
-            let prevSpo = appData.sports.filter(s=>filterPrevFn(s.date)).length;
-            let prevPro = appData.projetsSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
-            let prevBib = getBibleSessions().filter(s=>filterPrevFn(s.date)).length;
-            
-            let eKeysP = Object.keys(appData.tempsEcran).filter(filterPrevFn); let prevAvgEcran = eKeysP.length ? parseFloat((eKeysP.reduce((a, k) => a + appData.tempsEcran[k], 0) / eKeysP.length).toFixed(1)) : 0;
-            let sKeysP = Object.keys(appData.sommeil).filter(filterPrevFn); let pTotalDuree = sKeysP.reduce((acc,k) => acc + appData.sommeil[k].duree, 0); let prevAvgSommeil = sKeysP.length ? parseFloat((pTotalDuree / sKeysP.length).toFixed(1)) : 0;
-
-            let trPri = formatTrendIndicator(curPri, prevPri);
-            let trBib = formatTrendIndicator(curBib, prevBib);
-            let trFin = formatTrendIndicator(curFin, prevFin);
-            let trSpo = formatTrendIndicator(curSpo, prevSpo);
-            let trPro = formatTrendIndicator(curPro, prevPro);
-            let trSom = formatTrendIndicator(avgSommeil, prevAvgSommeil);
-            let trEcr = formatTrendIndicator(avgEcran, prevAvgEcran, true); // inverted color
-
-            document.getElementById('stat-trend-priere').innerHTML = trPri.html;
-            document.getElementById('stat-trend-bible').innerHTML = trBib.html;
-            document.getElementById('stat-trend-finance').innerHTML = trFin.html;
-            document.getElementById('stat-trend-sport').innerHTML = trSpo.html;
-            document.getElementById('stat-trend-projets').innerHTML = trPro.html;
-            document.getElementById('stat-trend-sommeil').innerHTML = trSom.html;
-            document.getElementById('stat-trend-ecran').innerHTML = trEcr.html;
-
-            // BILAN DYNAMIQUE
             let recapCont = document.getElementById('recap-dynamique-container');
             let recapTexte = document.getElementById('recap-dynamique-texte');
-            if (tFiltre === 'tout' || (curPri===0 && prevPri===0 && curSpo===0 && prevSpo===0 && curBib===0)) {
+
+            if (!showEvolution) {
+                // Masquer tous les indicateurs d'évolution si la case est décochée
+                ['priere', 'bible', 'finance', 'sport', 'projets', 'sommeil', 'ecran'].forEach(k => {
+                    let el = document.getElementById('stat-trend-' + k);
+                    if(el) el.classList.add('hidden');
+                });
                 recapCont.classList.add('hidden');
             } else {
-                recapCont.classList.remove('hidden');
-                let recaps = [];
-                if(trPri.raw > 0) recaps.push(`tes prières (<span class="text-emerald-400 font-bold">+${trPri.raw.toFixed(0)}%</span>)`);
-                if(trBib.raw > 0) recaps.push(`ta lecture de la Bible (<span class="text-emerald-400 font-bold">+${trBib.raw.toFixed(0)}%</span>)`);
-                if(trSpo.raw > 0) recaps.push(`ton sport (<span class="text-emerald-400 font-bold">+${trSpo.raw.toFixed(0)}%</span>)`);
-                if(trPro.raw > 0) recaps.push(`le temps sur tes projets (<span class="text-emerald-400 font-bold">+${trPro.raw.toFixed(0)}%</span>)`);
+                // Afficher et calculer si la case est cochée
+                let prevFin = appData.transactions.filter(t=>filterPrevFn(t.date)&&t.montant>0).reduce((a,t)=>a+t.montant, 0);
+                let prevPri = appData.priereSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+                let prevSpo = appData.sports.filter(s=>filterPrevFn(s.date)).length;
+                let prevPro = appData.projetsSessions.filter(s=>filterPrevFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
+                let prevBib = getBibleSessions().filter(s=>filterPrevFn(s.date)).length;
                 
-                let intro = "Par rapport à la période précédente, ";
-                if(recaps.length > 1) {
-                    recapTexte.innerHTML = intro + `tu as de très belles augmentations, notamment sur ${recaps.slice(0, -1).join(', ')} et ${recaps[recaps.length - 1]}. 👏 Continue sur cette lancée !`;
-                } else if(recaps.length === 1) {
-                    recapTexte.innerHTML = intro + `tu t'es bien amélioré(e) sur ${recaps[0]}. Bien joué !`;
-                } else {
-                    let baisses = [];
-                    if(trPri.raw < 0) baisses.push(`tes prières`); if(trSpo.raw < 0) baisses.push(`ton sport`);
-                    if(baisses.length > 0) {
-                        recapTexte.innerHTML = intro + `on observe une légère baisse sur ${baisses.join(' et ')}. ⚠️ Rien de grave, c'est l'occasion de te fixer un petit challenge pour la suite !`;
-                    } else {
-                        recapTexte.innerHTML = intro + `ton rythme semble s'être maintenu de façon stable.`;
+                let eKeysP = Object.keys(appData.tempsEcran).filter(filterPrevFn); let prevAvgEcran = eKeysP.length ? parseFloat((eKeysP.reduce((a, k) => a + appData.tempsEcran[k], 0) / eKeysP.length).toFixed(1)) : 0;
+                let sKeysP = Object.keys(appData.sommeil).filter(filterPrevFn); let pTotalDuree = sKeysP.reduce((acc,k) => acc + appData.sommeil[k].duree, 0); let prevAvgSommeil = sKeysP.length ? parseFloat((pTotalDuree / sKeysP.length).toFixed(1)) : 0;
+
+                let trPri = formatTrendIndicator(curPri, prevPri);
+                let trBib = formatTrendIndicator(curBib, prevBib);
+                let trFin = formatTrendIndicator(curFin, prevFin);
+                let trSpo = formatTrendIndicator(curSpo, prevSpo);
+                let trPro = formatTrendIndicator(curPro, prevPro);
+                let trSom = formatTrendIndicator(avgSommeil, prevAvgSommeil);
+                let trEcr = formatTrendIndicator(avgEcran, prevAvgEcran, true);
+
+                const setTrendUI = (id, trObj) => {
+                    let el = document.getElementById('stat-trend-' + id);
+                    if(el) {
+                        if(trObj.html) { el.innerHTML = trObj.html; el.classList.remove('hidden'); }
+                        else { el.classList.add('hidden'); }
                     }
+                };
+
+                setTrendUI('priere', trPri);
+                setTrendUI('bible', trBib);
+                setTrendUI('finance', trFin);
+                setTrendUI('sport', trSpo);
+                setTrendUI('projets', trPro);
+                setTrendUI('sommeil', trSom);
+                setTrendUI('ecran', trEcr);
+
+                if (tFiltre === 'tout' || (curPri===0 && prevPri===0 && curSpo===0 && prevSpo===0 && curBib===0)) {
+                    recapCont.classList.add('hidden');
+                } else {
+                    recapCont.classList.remove('hidden');
+                    let recaps = [];
+                    if(trPri.raw > 0) recaps.push(`tes prières (<span class="text-emerald-400 font-bold">+${trPri.raw.toFixed(0)}%</span>)`);
+                    if(trBib.raw > 0) recaps.push(`ta lecture de la Bible (<span class="text-emerald-400 font-bold">+${trBib.raw.toFixed(0)}%</span>)`);
+                    if(trSpo.raw > 0) recaps.push(`ton sport (<span class="text-emerald-400 font-bold">+${trSpo.raw.toFixed(0)}%</span>)`);
+                    if(trPro.raw > 0) recaps.push(`le temps sur tes projets (<span class="text-emerald-400 font-bold">+${trPro.raw.toFixed(0)}%</span>)`);
+                    
+                    let intro = "Par rapport à la période précédente, ";
+                    if(recaps.length > 1) {
+                        recapTexte.innerHTML = intro + `tu as de très belles augmentations, notamment sur ${recaps.slice(0, -1).join(', ')} et ${recaps[recaps.length - 1]}. 👏 Continue sur cette lancée !`;
+                    } else if(recaps.length === 1) {
+                        recapTexte.innerHTML = intro + `tu t'es bien amélioré(e) sur ${recaps[0]}. Bien joué !`;
+                    } else {
+                        let baisses = [];
+                        if(trPri.raw < 0) baisses.push(`tes prières`); if(trSpo.raw < 0) baisses.push(`ton sport`);
+                        if(baisses.length > 0) {
+                            recapTexte.innerHTML = intro + `on observe une légère baisse sur ${baisses.join(' et ')}. ⚠️ Rien de grave, c'est l'occasion de te fixer un petit challenge pour la suite !`;
+                        } else {
+                            recapTexte.innerHTML = intro + `ton rythme semble s'être maintenu de façon stable.`;
+                        }
+                    }
+                    if (trEcr.raw < 0) recapTexte.innerHTML += ` <br>✨ Point fort : tu as réduit ton temps d'écran moyen !`;
                 }
-                
-                if (trEcr.raw < 0) recapTexte.innerHTML += ` <br>✨ Point fort : tu as réduit ton temps d'écran moyen !`;
             }
 
             let genProgHtml = '';
@@ -1249,7 +1276,6 @@
         function afficherTransactions() { 
             document.getElementById('liste-transactions').innerHTML = appData.transactions.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2 hide-on-readonly">🗑️</button></div></div>`).join('');
             
-            // MAJ Barre Budget Mensuel
             let targetDate = new Date();
             let currentMonth = targetDate.getMonth();
             let currentYear = targetDate.getFullYear();
