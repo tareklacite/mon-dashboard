@@ -544,7 +544,7 @@
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' }); 
-            auth.signInWithRedirect(provider).catch(err => alert("Erreur de connexion : " + err.message));
+            auth.signInWithPopup(provider).catch(err => alert("Erreur de connexion : " + err.message));
         }
 
         function logout() { 
@@ -1245,7 +1245,7 @@
         function supprimerTransaction(id) { appData.transactions = appData.transactions.filter(t => t.id !== id); sauvegarderDonnees(); }
         
         function afficherTransactions() { 
-            document.getElementById('liste-transactions').innerHTML = appData.transactions.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2 hide-on-readonly">🗑️</button></div></div>`).join('');
+            document.getElementById('liste-transactions').innerHTML = appData.transactions.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2 hide-on-readonly">🗑️</button></div></div>`).join(''); 
             
             let targetDate = new Date();
             let currentMonth = targetDate.getMonth();
