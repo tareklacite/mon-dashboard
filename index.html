@@ -33,6 +33,9 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans pb-12 relative overflow-x-hidden">
 
+    <!-- SAFELIST TAILWIND CDN POUR LES BARRES DE PROGRESSION -->
+    <div class="hidden bg-indigo-500 bg-sky-500 bg-emerald-500 bg-amber-500 bg-cyan-500 bg-fuchsia-500 text-indigo-400 text-sky-400 text-emerald-400 text-amber-400 text-cyan-400 text-fuchsia-400"></div>
+
     <!-- ÉCRAN DE CONNEXION -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-[200] flex flex-col items-center justify-center">
         <div class="text-center space-y-6 bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl max-w-sm mx-4">
@@ -417,7 +420,7 @@
                     <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4" id="chrono-cours-container">
                         <div class="flex justify-center items-center gap-2 text-xs pt-2 hide-on-readonly">
                             <span class="text-slate-400">Temps :</span>
-                            <input type="number" id="chrono-custom-cours-min" value="25" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
+                            <input type="number" id="chrono-custom-cours-min" value="25" min="1" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
                             <span>min</span>
                             <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 px-3 py-1.5 rounded text-cyan-300">Appliquer</button>
                         </div>
@@ -540,6 +543,14 @@
         let isReadOnly = false;
         let myOwnDataBackup = null;
         let currentCoachUid = null;
+        let pendingWrites = 0;
+
+        window.addEventListener('beforeunload', (e) => {
+            if (pendingWrites > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -555,7 +566,7 @@
         // LOGIQUE DES DONNÉES DE L'APPLICATION
         // ==========================================
         const defaultDataStructure = {
-            ownerEmail: "", sharedWith: [], notifications: [],
+            ownerEmail: "", sharedWith: [], notifications: [], lastUpdated: 0,
             priereSessions: [], chapitresLus: {}, historiqueBible: [], transactions: [], sports: [], coursSessions: [], projetsSessions: [], 
             sommeil: {}, habitudes: {}, todos: [], tempsEcran: {},
             modulesActifs: { quotidien: true, spirituel: true, financier: true, sport: true, cours: true, projets: true },
@@ -593,13 +604,18 @@
                 return; 
             }
             appData = normaliserAppData(appData);
+            appData.lastUpdated = Date.now();
             if (currentUser) {
                 const cleanData = JSON.parse(JSON.stringify(appData));
                 localStorage.setItem('dashboard_backup_' + currentUser.uid, JSON.stringify(cleanData));
+                pendingWrites++;
                 db.collection('users').doc(currentUser.uid).set(cleanData)
                   .catch(err => {
                       console.error("Erreur Firestore :", err);
                       alert("Erreur de sauvegarde cloud : " + err.message);
+                  })
+                  .finally(() => {
+                      pendingWrites = Math.max(0, pendingWrites - 1);
                   });
             }
             calculerStatsGenerales(); updateChart(); afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); updateSommeilUI(); afficherHistoriqueEcran();
@@ -618,18 +634,25 @@
                     const docRef = db.collection('users').doc(user.uid);
                     const docSnap = await docRef.get();
 
-                    if (docSnap.exists) {
-                        appData = normaliserAppData(docSnap.data());
-                    } else {
-                        let oldLocal = localStorage.getItem('dashboard_backup_' + user.uid) || localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
-                        if (oldLocal) appData = normaliserAppData(JSON.parse(oldLocal));
+                    let cloudData = docSnap.exists ? normaliserAppData(docSnap.data()) : null;
+                    let oldLocalRaw = localStorage.getItem('dashboard_backup_' + user.uid) || localStorage.getItem('monAppSuiviDataV18') || localStorage.getItem('monAppSuiviDataV17');
+                    let localData = oldLocalRaw ? normaliserAppData(JSON.parse(oldLocalRaw)) : null;
+
+                    if (cloudData && localData) {
+                        appData = (localData.lastUpdated || 0) > (cloudData.lastUpdated || 0) ? localData : cloudData;
+                    } else if (cloudData) {
+                        appData = cloudData;
+                    } else if (localData) {
+                        appData = localData;
                     }
                     
                     appData.ownerEmail = user.email;
                     if (!appData.sharedWith) appData.sharedWith = [];
                     if (!appData.notifications) appData.notifications = [];
                     
-                    await docRef.set(JSON.parse(JSON.stringify(appData))); 
+                    const cleanInit = JSON.parse(JSON.stringify(appData));
+                    localStorage.setItem('dashboard_backup_' + user.uid, JSON.stringify(cleanInit));
+                    await docRef.set(cleanInit); 
                     
                     lancerApplication();
 
@@ -760,7 +783,8 @@
         // DEMARRAGE ET AFFICHAGE
         // ==========================================
         function lancerApplication() {
-            let defaultDate = new Date().toISOString().split('T')[0];
+            let nowLocal = new Date();
+            let defaultDate = nowLocal.getFullYear() + '-' + String(nowLocal.getMonth() + 1).padStart(2, '0') + '-' + String(nowLocal.getDate()).padStart(2, '0');
             document.getElementById('sommeil-date').value = defaultDate; document.getElementById('ecran-date').value = defaultDate;
             initSommeilRouletteSelects(); renderModulesActifs(); applyModulesVisibility(); renderMatieres(); updateBibleSelectUI(true); initChart(); calculerStatsGenerales(); afficherAmisPartages();
             afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); afficherHistoriqueEcran();
@@ -768,7 +792,8 @@
 
         function echapperHTML(texte) { let d = document.createElement('div'); d.innerText = texte; return d.innerHTML; }
         const getToday = () => new Date().toLocaleDateString('fr-FR');
-        function parseDateString(ds) { let [d,m,y] = ds.split('/'); return new Date(y, m-1, d); }
+        function parseDateString(ds) { let [d,m,y] = ds.split('/').map(Number); return new Date(y, m-1, d); }
+        function parseISODateLocal(iso) { if(!iso) return new Date(); let [y, m, d] = iso.split('-').map(Number); return new Date(y, m-1, d); }
         function parseDateISOToFr(iso) { let [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
         
         function joursEcoulesDepuis(dateStr) {
@@ -789,9 +814,9 @@
         }
 
         function isThisWeek(dateStr) { let date = parseDateString(dateStr); let now = new Date(); now.setHours(0,0,0,0); let day = now.getDay() || 7; let monday = new Date(now); monday.setDate(monday.getDate() - day + 1); return date >= monday; }
-        function isThisMonth(dateStr) { let [d, m, y] = dateStr.split('/'); let now = new Date(); return parseInt(m) === now.getMonth() + 1 && parseInt(y) === now.getFullYear(); }
-        function isThisYear(dateStr) { let [, , y] = dateStr.split('/'); return parseInt(y) === new Date().getFullYear(); }
-        function isSameWeekAsISO(dateStrFr, dateISO) { let parts = dateStrFr.split('/'); let d1 = new Date(parts[2], parts[1]-1, parts[0]); let d2 = new Date(dateISO); let day1 = d1.getDay() || 7; d1.setDate(d1.getDate() - day1 + 1); d1.setHours(0,0,0,0); let day2 = d2.getDay() || 7; d2.setDate(d2.getDate() - day2 + 1); d2.setHours(0,0,0,0); return d1.getTime() === d2.getTime(); }
+        function isThisMonth(dateStr) { let [d, m, y] = dateStr.split('/'); let now = new Date(); return parseInt(m, 10) === now.getMonth() + 1 && parseInt(y, 10) === now.getFullYear(); }
+        function isThisYear(dateStr) { let [, , y] = dateStr.split('/'); return parseInt(y, 10) === new Date().getFullYear(); }
+        function isSameWeekAsISO(dateStrFr, dateISO) { let d1 = parseDateString(dateStrFr); let d2 = parseISODateLocal(dateISO); let day1 = d1.getDay() || 7; d1.setDate(d1.getDate() - day1 + 1); d1.setHours(0,0,0,0); let day2 = d2.getDay() || 7; d2.setDate(d2.getDate() - day2 + 1); d2.setHours(0,0,0,0); return d1.getTime() === d2.getTime(); }
         function timeStrToFloat(t) { if(!t) return null; let [h, m] = t.split(':').map(Number); return h + (m/60); }
         function floatToTimeStr(f) { if (isNaN(f) || f === null) return '--:--'; let h = Math.floor(f); let m = Math.round((f - h) * 60); if (m === 60) { h += 1; m = 0; } h = h % 24; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); }
 
@@ -834,7 +859,7 @@
             document.getElementById('modules-actifs-container').innerHTML = html;
         }
 
-        function toggleModule(k) { appData.modulesActifs[k] = !appData.modulesActifs[k]; sauvegarderDonnees(); applyModulesVisibility(); renderChartCheckboxes(); updateChart(); }
+        function toggleModule(k) { if(isReadOnly) return; appData.modulesActifs[k] = !appData.modulesActifs[k]; sauvegarderDonnees(); applyModulesVisibility(); renderChartCheckboxes(); updateChart(); }
         function applyModulesVisibility() {
             for (let k in modInfos) {
                 let isVisible = appData.modulesActifs[k] !== false;
@@ -851,7 +876,14 @@
             calculerStatsGenerales();
         }
 
-        const configInfos = { priere: { label: 'Prière', color: 'indigo', icon: '🕊️' }, bible: { label: 'Bible', color: 'sky', icon: '📖' }, finance: { label: 'Épargne', color: 'emerald', icon: '💰' }, sport: { label: 'Sport', color: 'amber', icon: '⚡' }, cours: { label: 'Révisions', color: 'cyan', icon: '📚' }, projets: { label: 'Projets', color: 'fuchsia', icon: '🚀' } };
+        const configInfos = {
+            priere: { label: 'Prière', color: 'indigo', textClass: 'text-indigo-400', bgClass: 'bg-indigo-500', icon: '🕊️' },
+            bible: { label: 'Bible', color: 'sky', textClass: 'text-sky-400', bgClass: 'bg-sky-500', icon: '📖' },
+            finance: { label: 'Épargne', color: 'emerald', textClass: 'text-emerald-400', bgClass: 'bg-emerald-500', icon: '💰' },
+            sport: { label: 'Sport', color: 'amber', textClass: 'text-amber-400', bgClass: 'bg-amber-500', icon: '⚡' },
+            cours: { label: 'Révisions', color: 'cyan', textClass: 'text-cyan-400', bgClass: 'bg-cyan-500', icon: '📚' },
+            projets: { label: 'Projets', color: 'fuchsia', textClass: 'text-fuchsia-400', bgClass: 'bg-fuchsia-500', icon: '🚀' }
+        };
 
         function renderConfigObjectifs() {
             let html = '';
@@ -862,12 +894,12 @@
                 else if(k==='finance') uOpts = `<option value="€" selected>€</option>`;
                 else if(k==='sport') uOpts = `<option value="sea" selected>séances</option>`;
                 else if(k==='bible') uOpts = `<option value="chap." selected>chap.</option>`;
-                html += `<tr><td class="py-2 text-${configInfos[k].color}-400 font-bold whitespace-nowrap">${configInfos[k].icon} ${configInfos[k].label}</td><td class="py-2"><input type="number" id="cfg-val-${k}" value="${obj.valeur}" onchange="updateObj('${k}')" class="w-12 sm:w-16 bg-slate-950 border border-slate-700 rounded p-1 text-white"></td><td class="py-2"><select id="cfg-unit-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white" ${['finance','sport','bible'].includes(k)?'disabled':''}>${uOpts}</select></td><td class="py-2"><select id="cfg-per-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white"><option value="jour" ${obj.periode==='jour'?'selected':''}>Jour</option><option value="semaine" ${obj.periode==='semaine'?'selected':''}>Sem</option><option value="mois" ${obj.periode==='mois'?'selected':''}>Mois</option><option value="annee" ${obj.periode==='annee'?'selected':''}>An</option></select></td></tr>`;
+                html += `<tr><td class="py-2 ${configInfos[k].textClass} font-bold whitespace-nowrap">${configInfos[k].icon} ${configInfos[k].label}</td><td class="py-2"><input type="number" step="any" id="cfg-val-${k}" value="${obj.valeur}" onchange="updateObj('${k}')" class="w-12 sm:w-16 bg-slate-950 border border-slate-700 rounded p-1 text-white"></td><td class="py-2"><select id="cfg-unit-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white" ${['finance','sport','bible'].includes(k)?'disabled':''}>${uOpts}</select></td><td class="py-2"><select id="cfg-per-${k}" onchange="updateObj('${k}')" class="bg-slate-950 border border-slate-700 rounded p-1 text-white"><option value="jour" ${obj.periode==='jour'?'selected':''}>Jour</option><option value="semaine" ${obj.periode==='semaine'?'selected':''}>Sem</option><option value="mois" ${obj.periode==='mois'?'selected':''}>Mois</option><option value="annee" ${obj.periode==='annee'?'selected':''}>An</option></select></td></tr>`;
             }
             document.getElementById('config-objectifs-body').innerHTML = html;
         }
 
-        function updateObj(k) { appData.objectifs[k].valeur = parseInt(document.getElementById(`cfg-val-${k}`).value) || 0; appData.objectifs[k].unite = document.getElementById(`cfg-unit-${k}`).value; appData.objectifs[k].periode = document.getElementById(`cfg-per-${k}`).value; sauvegarderDonnees(); }
+        function updateObj(k) { if(isReadOnly) return; appData.objectifs[k].valeur = parseFloat(document.getElementById(`cfg-val-${k}`).value) || 0; appData.objectifs[k].unite = document.getElementById(`cfg-unit-${k}`).value; appData.objectifs[k].periode = document.getElementById(`cfg-per-${k}`).value; sauvegarderDonnees(); }
         function getBibleSessions() { let s = []; for (let b in appData.chapitresLus) { for (let c in appData.chapitresLus[b]) { appData.chapitresLus[b][c].forEach(d => s.push({ date: d })); } } return s; }
 
         function getProgression(type) {
@@ -883,7 +915,7 @@
             return { pct: obj.valeur > 0 ? Math.min(100, (vAff / obj.valeur) * 100) : 0, displayStr: `${vAff} / ${obj.valeur} ${obj.unite}`, titleStr: `Objectif ${pStr}`, detailHtml: '' };
         }
 
-        function updateFiltresTotauxUI() { let t = document.getElementById('filtre-type-totaux').value; ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); }); let d = new Date(); let isoDate = d.toISOString().split('T')[0]; if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate; if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate; calculerStatsGenerales(); }
+        function updateFiltresTotauxUI() { let t = document.getElementById('filtre-type-totaux').value; ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); }); let d = new Date(); let isoDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate; if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate; calculerStatsGenerales(); }
 
         function evaluerBadges(streak) {
             let totalChapitres = getBibleSessions().length;
@@ -921,7 +953,7 @@
             renderConfigObjectifs();
             let showEvolution = document.getElementById('toggle-evolution').checked;
             let tFiltre = document.getElementById('filtre-type-totaux').value; 
-            let vAnnee = parseInt(document.getElementById('filtre-val-annee').value); 
+            let vAnnee = parseInt(document.getElementById('filtre-val-annee').value, 10); 
             let vMois = document.getElementById('filtre-val-mois').value; 
             let vSem = document.getElementById('filtre-val-semaine').value; 
             let vJour = document.getElementById('filtre-val-jour').value;
@@ -932,18 +964,20 @@
                 if (!d || tFiltre === 'tout') return false;
                 if (tFiltre === 'annee') return d.endsWith('/' + (vAnnee - 1));
                 if (tFiltre === 'mois' && vMois) {
-                    let dObj = new Date(vMois + '-01'); dObj.setMonth(dObj.getMonth() - 1);
+                    let [ym, mm] = vMois.split('-').map(Number);
+                    let dObj = new Date(ym, mm - 2, 1);
                     let prevMStr = dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0');
                     let parts = d.split('/'); return parts[1] === prevMStr.substring(5,7) && parts[2] === prevMStr.substring(0,4);
                 }
                 if (tFiltre === 'semaine' && vSem) {
-                    let dObj = new Date(vSem); dObj.setDate(dObj.getDate() - 7);
-                    return isSameWeekAsISO(d, dObj.toISOString().split('T')[0]);
+                    let dObj = parseISODateLocal(vSem); dObj.setDate(dObj.getDate() - 7);
+                    let prevIso = dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0') + '-' + String(dObj.getDate()).padStart(2,'0');
+                    return isSameWeekAsISO(d, prevIso);
                 }
                 if (tFiltre === 'jour' && vJour) {
-                    let dObj = new Date(vJour); dObj.setDate(dObj.getDate() - 1);
-                    let prevJStr = dObj.toISOString().split('T')[0]; let parts = d.split('/');
-                    return parts[0] === prevJStr.substring(8,10) && parts[1] === prevJStr.substring(5,7) && parts[2] === prevJStr.substring(0,4);
+                    let dObj = parseISODateLocal(vJour); dObj.setDate(dObj.getDate() - 1);
+                    let prevJStr = String(dObj.getDate()).padStart(2,'0') + '/' + String(dObj.getMonth()+1).padStart(2,'0') + '/' + dObj.getFullYear();
+                    return d === prevJStr;
                 }
                 return false;
             };
@@ -1047,9 +1081,9 @@
             let genProgHtml = '';
             for (let k in appData.objectifs) {
                 let mod = objToModule[k]; if (appData.modulesActifs[mod] === false) continue;
-                let pr = getProgression(k); let col = configInfos[k].color; let c = document.getElementById(`progression-card-${k}`);
-                if(c) c.innerHTML = `<div class="flex justify-between items-center text-xs mb-2"><span class="flex items-center gap-2 text-slate-300">🎯 ${pr.titleStr}</span><span class="font-bold text-${col}-400">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div class="bg-${col}-500 h-full transition-all" style="width:${pr.pct}%"></div></div>`;
-                genProgHtml += `<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between"><div><div class="flex justify-between text-${col}-400 mb-2"><span>${configInfos[k].icon} ${configInfos[k].label}</span><span class="font-bold">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-1"><div class="bg-${col}-500 h-full" style="width:${pr.pct}%"></div></div></div></div>`;
+                let pr = getProgression(k); let info = configInfos[k]; let c = document.getElementById(`progression-card-${k}`);
+                if(c) c.innerHTML = `<div class="flex justify-between items-center text-xs mb-2"><span class="flex items-center gap-2 text-slate-300">🎯 ${pr.titleStr}</span><span class="font-bold ${info.textClass}">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div class="${info.bgClass} h-full transition-all" style="width:${pr.pct}%"></div></div>`;
+                genProgHtml += `<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between"><div><div class="flex justify-between ${info.textClass} mb-2"><span>${info.icon} ${info.label}</span><span class="font-bold">${pr.displayStr}</span></div><div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-1"><div class="${info.bgClass} h-full" style="width:${pr.pct}%"></div></div></div></div>`;
             }
             document.getElementById('general-progressions-container').innerHTML = genProgHtml;
 
@@ -1064,6 +1098,7 @@
         }
 
         function ajouterRoutine() { 
+            if(isReadOnly) return;
             let v = document.getElementById('nouvelle-routine-input').value.trim(); 
             if(v) { 
                 appData.routinesList.push({ id: 'id_' + Date.now(), label: v, createdAt: getToday() }); 
@@ -1073,8 +1108,8 @@
                 updateChart(); 
             } 
         }
-        function supprimerRoutine(id) { if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
-        function toggleHabitude(id) { let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
+        function supprimerRoutine(id) { if(isReadOnly) return; if(confirm("Supprimer cette habitude ?")) { appData.routinesList = appData.routinesList.filter(r => r.id !== id); sauvegarderDonnees(); renderChartCheckboxes(); updateChart(); } }
+        function toggleHabitude(id) { if(isReadOnly) return; let td = getToday(); if(!appData.habitudes[td]) appData.habitudes[td] = {}; appData.habitudes[td][id] = !appData.habitudes[td][id]; sauvegarderDonnees(); }
         function afficherHabitudes() { 
             let st = appData.habitudes[getToday()] || {}; 
             let td = getToday();
@@ -1093,19 +1128,20 @@
                 let startDate = r.createdAt || firstCheckDate || td;
                 let nbJours = joursEcoulesDepuis(startDate);
                 
-                return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)} <span class="text-[10px] text-sky-400 font-bold ml-2">(${timesChecked}/${nbJours} jrs)</span></span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; 
+                return `<div class="flex justify-between items-center p-3 bg-slate-900 border border-slate-800 rounded-lg"><label class="flex items-center gap-3 cursor-pointer flex-1"><input type="checkbox" onchange="toggleHabitude('${r.id}')" ${c} ${isReadOnly ? 'disabled' : ''} class="w-5 h-5 accent-sky-500 rounded"><span class="${c ? 'line-through text-slate-500' : 'text-slate-200'}">${echapperHTML(r.label)} <span class="text-[10px] text-sky-400 font-bold ml-2">(${timesChecked}/${nbJours} jrs)</span></span></label><button onclick="supprimerRoutine('${r.id}')" class="text-rose-400 px-2 font-bold text-lg hide-on-readonly">×</button></div>`; 
             }).join(''); 
         }
         
-        function enregistrerSommeilRoulette() { let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées.`); }
+        function enregistrerSommeilRoulette() { if(isReadOnly) return; let d = document.getElementById('sommeil-date').value; if(!d) { alert("Veuillez sélectionner une date."); return; } let cH = document.getElementById('coucher-h').value, cM = document.getElementById('coucher-m').value; let rH = document.getElementById('reveil-h').value, rM = document.getElementById('reveil-m').value; let coucherStr = `${cH}:${cM}`, reveilStr = `${rH}:${rM}`; let dateStr = parseDateISOToFr(d); let diff = timeStrToFloat(reveilStr) - timeStrToFloat(coucherStr); if (diff < 0) diff += 24; diff = parseFloat(diff.toFixed(1)); appData.sommeil[dateStr] = { duree: diff, coucher: coucherStr, reveil: reveilStr }; sauvegarderDonnees(); showNotification("Sommeil enregistré 🛌", `${diff}h enregistrées.`); }
         function updateSommeilUI() { let histHtml = ''; let sortedDates = Object.keys(appData.sommeil).sort((a,b) => parseDateString(b) - parseDateString(a)); if(sortedDates.length === 0) { histHtml = '<p class="text-slate-500 italic text-center py-2">Aucune nuit enregistrée.</p>'; } else { sortedDates.forEach(dateKey => { let nuit = appData.sommeil[dateKey]; histHtml += `<div class="flex justify-between items-center p-2 bg-slate-950 border border-slate-800 rounded"><span>🛌 <strong>${dateKey}</strong> : ${nuit.duree}h (${nuit.coucher || '--:--'} → ${nuit.reveil || '--:--'})</span><button onclick="supprimerSommeil('${dateKey}')" class="text-rose-400 hover:text-rose-300 px-2 py-1 hide-on-readonly">🗑️</button></div>`; }); } document.getElementById('liste-historique-sommeil').innerHTML = histHtml; }
-        function supprimerSommeil(dateStr) { delete appData.sommeil[dateStr]; sauvegarderDonnees(); }
+        function supprimerSommeil(dateStr) { if(isReadOnly) return; delete appData.sommeil[dateStr]; sauvegarderDonnees(); }
         
         function enregistrerTempsEcran() { 
+            if(isReadOnly) return;
             let d = document.getElementById('ecran-date').value; 
             if(!d) { alert("Veuillez sélectionner une date."); return; }
-            let h = parseInt(document.getElementById('ecran-h').value) || 0;
-            let m = parseInt(document.getElementById('ecran-m').value) || 0;
+            let h = parseInt(document.getElementById('ecran-h').value, 10) || 0;
+            let m = parseInt(document.getElementById('ecran-m').value, 10) || 0;
             let totalH = h + (m / 60);
             let dateStr = parseDateISOToFr(d); 
             if(!appData.tempsEcran || typeof appData.tempsEcran !== 'object' || Array.isArray(appData.tempsEcran)) appData.tempsEcran = {};
@@ -1131,7 +1167,7 @@
             let container = document.getElementById('liste-historique-ecran');
             if(container) container.innerHTML = histHtml;
         }
-        function supprimerEcran(dateStr) { delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
+        function supprimerEcran(dateStr) { if(isReadOnly) return; delete appData.tempsEcran[dateStr]; sauvegarderDonnees(); }
         
         function updateBibleSelectUI(init = false) { 
             let h = ''; 
@@ -1196,10 +1232,10 @@
 
         function afficherHistoriqueBible() { document.getElementById('liste-historique-bible').innerHTML = appData.historiqueBible.map(h => `<div class="flex justify-between p-2 bg-slate-950 border border-slate-800 rounded"><span>${h.texte.includes('Retiré') ? '🗑️' : '📖'} ${echapperHTML(h.texte)}</span><span class="text-slate-400 text-right">${h.dateStr}</span></div>`).join(''); }
         function renderMatieres() { document.getElementById('cours-matiere').innerHTML = appData.matieresList.map(m => `<option value="${echapperHTML(m)}">${echapperHTML(m)}</option>`).join(''); }
-        function ajouterMatiere() { let v = document.getElementById('nouvelle-matiere-input').value.trim(); if(v && !appData.matieresList.includes(v)) { appData.matieresList.push(v); document.getElementById('nouvelle-matiere-input').value = ''; sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
-        function supprimerMatiereCourante() { let v = document.getElementById('cours-matiere').value; if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
+        function ajouterMatiere() { if(isReadOnly) return; let v = document.getElementById('nouvelle-matiere-input').value.trim(); if(v && !appData.matieresList.includes(v)) { appData.matieresList.push(v); document.getElementById('nouvelle-matiere-input').value = ''; sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
+        function supprimerMatiereCourante() { if(isReadOnly) return; let v = document.getElementById('cours-matiere').value; if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
         
-        let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
+        let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, baseSec: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
         
         function formatHeureHHMM(dateObj) {
             return String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
@@ -1238,16 +1274,67 @@
             }
         }
 
-        function setPomodoroMode(id, min) { let c = chronos[id]; clearInterval(c.i); c.run = false; c.act = parseInt(min) * 60; c.acc = 0; document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; updateChronoAffichage(id); }
-        function toggleChrono(id) { let c = chronos[id]; let btn = document.getElementById(`btn-toggle-${id}`); if (!c.run) { c.run = true; btn.innerText = "Pause"; btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600'); c.debut = Date.now(); c.i = setInterval(() => { if (c.pMode && c.act > 0) { c.act--; if(c.act === 0) { resetChrono(id); return; } } else { c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000); } updateChronoAffichage(id); }, 1000); } else { clearInterval(c.i); c.run = false; btn.innerText = "Reprendre"; btn.classList.replace('bg-amber-600', `bg-${c.color}-600`); if(!c.pMode) c.acc = c.act; } }
+        function setPomodoroMode(id, min) {
+            if (isReadOnly) return;
+            let parsed = parseInt(min, 10);
+            if (isNaN(parsed) || parsed < 1) parsed = 25;
+            let inputEl = document.getElementById(`chrono-custom-${id}-min`);
+            if (inputEl) inputEl.value = parsed;
+            let c = chronos[id];
+            clearInterval(c.i);
+            c.run = false;
+            c.act = parsed * 60;
+            c.baseSec = parsed * 60;
+            c.acc = 0;
+            let btn = document.getElementById(`btn-toggle-${id}`);
+            btn.innerText = "Démarrer";
+            btn.classList.remove('bg-amber-600');
+            btn.classList.add(`bg-${c.color}-600`);
+            updateChronoAffichage(id);
+        }
+
+        function toggleChrono(id) {
+            if (isReadOnly) return;
+            let c = chronos[id];
+            let btn = document.getElementById(`btn-toggle-${id}`);
+            if (!c.run) {
+                c.run = true;
+                btn.innerText = "Pause";
+                btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600');
+                c.debut = Date.now();
+                if (c.pMode) c.startAct = c.act;
+                c.i = setInterval(() => {
+                    if (c.pMode) {
+                        let elapsed = Math.floor((Date.now() - c.debut) / 1000);
+                        c.act = Math.max(0, c.startAct - elapsed);
+                        updateChronoAffichage(id);
+                        if (c.act === 0) {
+                            resetChrono(id);
+                            return;
+                        }
+                    } else {
+                        c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000);
+                        updateChronoAffichage(id);
+                    }
+                }, 1000);
+            } else {
+                clearInterval(c.i);
+                c.run = false;
+                btn.innerText = "Reprendre";
+                btn.classList.replace('bg-amber-600', `bg-${c.color}-600`);
+                if (!c.pMode) c.acc = c.act;
+            }
+        }
+
         function resetChrono(id) { 
+            if (isReadOnly) return;
             let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; 
             document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; 
             document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); 
             document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); 
             
-            let baseMin = id === 'cours' ? parseInt(document.getElementById('chrono-custom-cours-min').value) : 25; 
-            let timeToAdd = c.pMode ? baseMin : Math.floor(c.act / 60); 
+            let baseSec = c.baseSec || (25 * 60);
+            let timeToAdd = c.pMode ? Math.floor((baseSec - c.act) / 60) : Math.floor(c.act / 60); 
             
             if (timeToAdd > 0) { 
                 if (id === 'cours') enregistrerSessionDecoupee(appData.coursSessions, timeToAdd, { matiere: document.getElementById('cours-matiere').value });
@@ -1255,43 +1342,45 @@
                 if (id === 'projets') enregistrerSessionDecoupee(appData.projetsSessions, timeToAdd, { nom: document.getElementById('projets-nom').value.trim() || 'Projet' });
                 showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées.`); 
             } 
-            c.act = c.pMode ? baseMin*60 : 0; 
+            c.act = c.pMode ? baseSec : 0; 
             updateChronoAffichage(id); 
             sauvegarderDonnees(); 
             if(document.fullscreenElement) document.exitFullscreen(); 
         }
+
         function updateChronoAffichage(id) { let s = chronos[id].act; document.getElementById(`chrono-${id}-display`).innerText = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(v => String(v).padStart(2, '0')).join(':'); }
         function toggleFullscreen(id) { let el = document.getElementById(id); if (!document.fullscreenElement) { el.requestFullscreen().catch(e => {}); } else { document.exitFullscreen(); } }
         function exporterDonnees() { let str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); let dl = document.createElement('a'); dl.setAttribute("href", str); dl.setAttribute("download", `dashboard.json`); document.body.appendChild(dl); dl.click(); dl.remove(); }
-        function importerDonnees(e) { let f = e.target.files[0]; if (!f) return; let r = new FileReader(); r.onload = function(ev) { try { appData = normaliserAppData(JSON.parse(ev.target.result)); sauvegarderDonnees(); location.reload(); } catch (err) {} }; r.readAsText(f); }
-        function ajouterTodo() { let t = document.getElementById('todo-input').value.trim(); if(t) { appData.todos.unshift({ id: Date.now(), texte: t, fait: false }); document.getElementById('todo-input').value = ''; sauvegarderDonnees(); } }
-        function toggleTodo(id) { let t = appData.todos.find(x => x.id === id); if(t) t.fait = !t.fait; sauvegarderDonnees(); }
-        function supprimerTodo(id) { appData.todos = appData.todos.filter(x => x.id !== id); sauvegarderDonnees(); }
-        function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400 hide-on-readonly">×</button></div>`).join(''); }
+        function importerDonnees(e) { if(isReadOnly) return; let f = e.target.files[0]; if (!f) return; let r = new FileReader(); r.onload = function(ev) { try { appData = normaliserAppData(JSON.parse(ev.target.result)); sauvegarderDonnees(); location.reload(); } catch (err) {} }; r.readAsText(f); }
+        function ajouterTodo() { if(isReadOnly) return; let t = document.getElementById('todo-input').value.trim(); if(t) { appData.todos.unshift({ id: Date.now(), texte: t, fait: false }); document.getElementById('todo-input').value = ''; sauvegarderDonnees(); } }
+        function toggleTodo(id) { if(isReadOnly) return; let t = appData.todos.find(x => x.id === id); if(t) t.fait = !t.fait; sauvegarderDonnees(); }
+        function supprimerTodo(id) { if(isReadOnly) return; appData.todos = appData.todos.filter(x => x.id !== id); sauvegarderDonnees(); }
+        function afficherTodos() { document.getElementById('liste-todos').innerHTML = appData.todos.map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><label class="flex items-center gap-2"><input type="checkbox" onchange="toggleTodo(${t.id})" ${t.fait?'checked':''} ${isReadOnly ? 'disabled' : ''} class="accent-fuchsia-500"><span class="${t.fait?'line-through text-slate-500':'text-slate-200'}">${echapperHTML(t.texte)}</span></label><button onclick="supprimerTodo(${t.id})" class="text-rose-400 hide-on-readonly">×</button></div>`).join(''); }
         
         function ajouterPriereManuelle() { 
-            let m = parseInt(document.getElementById('priere-manuel-min').value); 
+            if(isReadOnly) return;
+            let m = parseInt(document.getElementById('priere-manuel-min').value, 10); 
             if(m>0) { 
                 enregistrerSessionDecoupee(appData.priereSessions, m);
                 document.getElementById('priere-manuel-min').value = ''; 
                 sauvegarderDonnees(); 
             } 
         }
-        function supprimerPriere(id) { appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
+        function supprimerPriere(id) { if(isReadOnly) return; appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = (appData.priereSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
-        function supprimerCours(id) { appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
+        function supprimerCours(id) { if(isReadOnly) return; appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = (appData.coursSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
-        function supprimerProjet(id) { appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
+        function supprimerProjet(id) { if(isReadOnly) return; appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = (appData.projetsSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
-        function ajouterSportManuel() { let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
-        function supprimerSport(id) { appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
+        function ajouterSportManuel() { if(isReadOnly) return; let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
+        function supprimerSport(id) { if(isReadOnly) return; appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
         function afficherSports() { document.getElementById('liste-sports').innerHTML = (appData.sports || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>⚡ ${echapperHTML(s.nom)} - ${s.date}</span><button onclick="supprimerSport(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
-        function ajouterTransaction(m) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: m > 0 ? "Ajout" : "Retrait" }); sauvegarderDonnees(); }
-        function ajouterTransactionPersonnalisee() { let m = parseFloat(document.getElementById('finance-montant').value); if(!isNaN(m)) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: document.getElementById('finance-motif').value.trim() || "Mouvement" }); document.getElementById('finance-montant').value = ''; document.getElementById('finance-motif').value = ''; sauvegarderDonnees(); } }
-        function supprimerTransaction(id) { appData.transactions = appData.transactions.filter(t => t.id !== id); sauvegarderDonnees(); }
+        function ajouterTransaction(m) { if(isReadOnly) return; appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: m > 0 ? "Ajout" : "Retrait" }); sauvegarderDonnees(); }
+        function ajouterTransactionPersonnalisee() { if(isReadOnly) return; let m = parseFloat(document.getElementById('finance-montant').value); if(!isNaN(m)) { appData.transactions.unshift({ id: Date.now(), date: getToday(), montant: m, motif: document.getElementById('finance-motif').value.trim() || "Mouvement" }); document.getElementById('finance-montant').value = ''; document.getElementById('finance-motif').value = ''; sauvegarderDonnees(); } }
+        function supprimerTransaction(id) { if(isReadOnly) return; appData.transactions = appData.transactions.filter(t => t.id !== id); sauvegarderDonnees(); }
         
         function afficherTransactions() { 
             document.getElementById('liste-transactions').innerHTML = (appData.transactions || []).map(t => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>${t.date} - ${echapperHTML(t.motif)}</span><div><span class="${t.montant>0?'text-emerald-400':'text-rose-400'} font-bold">${t.montant}€</span><button onclick="supprimerTransaction(${t.id})" class="text-rose-400 ml-2 hide-on-readonly">🗑️</button></div></div>`).join(''); 
@@ -1323,8 +1412,8 @@
         function changerPeriodeGraph(p) { currentPeriode = p; chartAnchorDate = new Date(); document.querySelectorAll('.period-btn').forEach(b => { b.classList.remove('bg-indigo-600', 'text-white', 'font-medium'); b.classList.add('text-slate-400'); }); document.getElementById('btn-period-'+p).classList.add('bg-indigo-600', 'text-white', 'font-medium'); updateChart(); }
         function navChart(dir) { if (currentPeriode === 'annee') chartAnchorDate.setFullYear(chartAnchorDate.getFullYear() + dir); else if (currentPeriode === 'mois') chartAnchorDate.setMonth(chartAnchorDate.getMonth() + dir); else if (currentPeriode === 'semaine') chartAnchorDate.setDate(chartAnchorDate.getDate() + (dir * 7)); else if (currentPeriode === 'jour') chartAnchorDate.setDate(chartAnchorDate.getDate() + dir); updateChart(); }
         function focusChartPicker() { let dInput = document.getElementById('picker-date-input'), mInput = document.getElementById('picker-month-input'); if (currentPeriode === 'annee' || currentPeriode === 'mois') mInput.click(); else dInput.click(); }
-        function onPickerDateChange(val) { if (val) { chartAnchorDate = new Date(val); updateChart(); } }
-        function onPickerMonthChange(val) { if (val) { let [y, m] = val.split('-'); chartAnchorDate = new Date(parseInt(y), parseInt(m) - 1, 1); updateChart(); } }
+        function onPickerDateChange(val) { if (val) { chartAnchorDate = parseISODateLocal(val); updateChart(); } }
+        function onPickerMonthChange(val) { if (val) { let [y, m] = val.split('-'); chartAnchorDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1); updateChart(); } }
         function getChartData(p) {
             let labels = [], dPri=[], dPro=[], dSpo=[], dFin=[], dBible=[], dSom=[], dEcr=[]; let dMat = {}; appData.matieresList.forEach(m => dMat[m] = []); let dRout = {}; appData.routinesList.forEach(r => dRout[r.id] = []); let bSess = getBibleSessions(), targetDate = new Date(chartAnchorDate);
             document.getElementById('picker-date-input').classList.add('pointer-events-none'); document.getElementById('picker-month-input').classList.add('pointer-events-none');
