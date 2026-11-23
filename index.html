@@ -20,10 +20,6 @@
         .badge { display: none; }
         .badge.unlocked { display: flex; }
         
-        #chrono-cours-container:fullscreen { background-color: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; }
-        #chrono-cours-container:fullscreen #chrono-cours-display { font-size: 8rem; line-height: 1; margin-bottom: 2rem; }
-        #chrono-cours-container:-webkit-full-screen { background-color: #020617; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
         
@@ -265,15 +261,22 @@
                         </div>
                     </div>
 
-                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
                         <h3 class="text-sm font-semibold text-slate-200">📱 Temps d'Écran</h3>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <input type="date" id="ecran-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
-                            <div class="flex gap-1 items-center hide-on-readonly">
-                                <select id="ecran-h" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">h</span>
-                                <select id="ecran-m" class="w-16 bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-center text-white"></select><span class="text-slate-400 text-xs">min</span>
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 w-16">Date :</span>
+                                <input type="date" id="ecran-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
                             </div>
-                            <button onclick="enregistrerTempsEcran()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2 rounded-lg text-xs hide-on-readonly">Enregistrer</button>
+                            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5 hide-on-readonly">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase">Durée d'écran</label>
+                                <div class="flex gap-2 items-center">
+                                    <select id="ecran-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                    <span>:</span>
+                                    <select id="ecran-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                </div>
+                            </div>
+                            <button onclick="enregistrerTempsEcran()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-4 py-2.5 rounded-lg text-xs w-full hide-on-readonly">Enregistrer le temps d'écran</button>
                         </div>
                         <details class="bg-slate-900 rounded-xl border border-slate-800 group mt-4 open">
                             <summary class="p-3 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
@@ -291,16 +294,22 @@
                     <h2 class="text-lg font-semibold text-indigo-300">🕊️ Spirituel & Prières</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-priere"></div>
                     
-                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-3">
+                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4">
                         <div id="chrono-priere-display" class="text-4xl font-mono font-bold text-indigo-400">00:00:00</div>
                         <div class="flex justify-center gap-2 hide-on-readonly">
                             <button onclick="toggleChrono('priere')" id="btn-toggle-priere" class="bg-indigo-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
                             <button onclick="resetChrono('priere')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
                         </div>
-                        <div class="pt-3 border-t border-slate-900 flex justify-center items-center gap-2 hide-on-readonly">
-                            <span class="text-xs text-slate-400">Manuel :</span>
-                            <input type="number" id="priere-manuel-min" placeholder="Min" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded-lg text-xs text-center text-white">
-                            <button onclick="ajouterPriereManuelle()" class="bg-indigo-600/30 text-indigo-300 px-3 py-1.5 rounded-lg text-xs font-medium">+ Ajouter</button>
+                        <div class="pt-4 border-t border-slate-900 text-left space-y-3 hide-on-readonly">
+                            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                <label class="text-[10px] text-slate-400 font-bold uppercase">Ajout manuel (Heures / Minutes)</label>
+                                <div class="flex gap-2 items-center">
+                                    <select id="priere-manuel-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                    <span>:</span>
+                                    <select id="priere-manuel-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                </div>
+                            </div>
+                            <button onclick="ajouterPriereManuelle()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-lg text-xs">Enregistrer la prière</button>
                         </div>
                     </div>
                     
@@ -398,6 +407,7 @@
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-6">
                     <h2 class="text-lg font-semibold text-cyan-300">📚 Révisions</h2>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800" id="progression-card-cours"></div>
+                    
                     <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4 hide-on-readonly">
                         <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">Gestion des Matières</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
@@ -417,20 +427,24 @@
                             </div>
                         </div>
                     </div>
-                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4" id="chrono-cours-container">
-                        <div class="flex justify-center items-center gap-2 text-xs pt-2 hide-on-readonly">
-                            <span class="text-slate-400">Temps :</span>
-                            <input type="number" id="chrono-custom-cours-min" value="25" min="1" class="w-16 bg-slate-900 border border-slate-800 p-1.5 rounded text-center text-white font-bold">
-                            <span>min</span>
-                            <button onclick="setPomodoroMode('cours', document.getElementById('chrono-custom-cours-min').value)" class="bg-slate-800 px-3 py-1.5 rounded text-cyan-300">Appliquer</button>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3 hide-on-readonly">
+                        <h3 class="text-sm font-semibold text-slate-200">⏱️ Enregistrer une session</h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 w-16">Date :</span>
+                            <input type="date" id="cours-date" class="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs text-white">
                         </div>
-                        <div id="chrono-cours-display" class="text-5xl font-mono font-bold text-cyan-400 my-2">00:25:00</div>
-                        <div class="flex justify-center gap-2">
-                            <button onclick="toggleChrono('cours')" id="btn-toggle-cours" class="bg-cyan-600 hover:bg-cyan-500 px-5 py-2.5 rounded-xl text-xs font-semibold text-white hide-on-readonly">Démarrer</button>
-                            <button onclick="resetChrono('cours')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl text-xs text-slate-200 hide-on-readonly">Enregistrer</button>
-                            <button onclick="toggleFullscreen('chrono-cours-container')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2.5 rounded-xl text-xs text-slate-200" title="Plein écran">⛶</button>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase">Temps de révision</label>
+                            <div class="flex gap-2 items-center">
+                                <select id="cours-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                <span>:</span>
+                                <select id="cours-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                            </div>
                         </div>
+                        <button onclick="enregistrerCoursManuel()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2.5 rounded-lg text-xs">Enregistrer la révision</button>
                     </div>
+
                     <details class="bg-slate-950 rounded-xl border border-slate-800 group">
                         <summary class="p-4 cursor-pointer text-xs font-semibold text-slate-300 flex justify-between items-center outline-none">
                             <span>🕒 Historique des révisions</span><span class="group-open:rotate-180 transition-transform">▼</span>
@@ -452,6 +466,17 @@
                             <div class="flex justify-center gap-2 hide-on-readonly">
                                 <button onclick="toggleChrono('projets')" id="btn-toggle-projets" class="bg-fuchsia-600 px-4 py-2 rounded-xl text-xs font-semibold text-white">Démarrer</button>
                                 <button onclick="resetChrono('projets')" class="bg-slate-800 px-4 py-2 rounded-xl text-xs">Enregistrer</button>
+                            </div>
+                            <div class="pt-3 border-t border-slate-900 text-left space-y-2 hide-on-readonly">
+                                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">Ajout manuel (Heures / Minutes)</label>
+                                    <div class="flex gap-2 items-center">
+                                        <select id="projets-manuel-h" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                        <span>:</span>
+                                        <select id="projets-manuel-m" class="flex-1 bg-slate-950 border border-slate-700 p-2 rounded-lg text-sm text-center text-white"></select>
+                                    </div>
+                                </div>
+                                <button onclick="ajouterProjetManuel()" class="w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-semibold py-2 rounded-lg text-xs">Enregistrer le temps</button>
                             </div>
                         </div>
                         <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
@@ -595,6 +620,8 @@
             if (!Array.isArray(merged.coursSessions)) merged.coursSessions = [];
             if (!Array.isArray(merged.projetsSessions)) merged.projetsSessions = [];
             if (!Array.isArray(merged.todos)) merged.todos = [];
+            if (!Array.isArray(merged.matieresList) || merged.matieresList.length === 0) merged.matieresList = [...base.matieresList];
+            if (!Array.isArray(merged.routinesList)) merged.routinesList = [...base.routinesList];
             return merged;
         }
 
@@ -782,11 +809,26 @@
         // ==========================================
         // DEMARRAGE ET AFFICHAGE
         // ==========================================
-        function lancerApplication() {
+        function getTodayISO() {
             let nowLocal = new Date();
-            let defaultDate = nowLocal.getFullYear() + '-' + String(nowLocal.getMonth() + 1).padStart(2, '0') + '-' + String(nowLocal.getDate()).padStart(2, '0');
-            document.getElementById('sommeil-date').value = defaultDate; document.getElementById('ecran-date').value = defaultDate;
-            initSommeilRouletteSelects(); renderModulesActifs(); applyModulesVisibility(); renderMatieres(); updateBibleSelectUI(true); initChart(); calculerStatsGenerales(); afficherAmisPartages();
+            return nowLocal.getFullYear() + '-' + String(nowLocal.getMonth() + 1).padStart(2, '0') + '-' + String(nowLocal.getDate()).padStart(2, '0');
+        }
+
+        function formatMinutesToHM(totalMin) {
+            totalMin = Math.round(totalMin || 0);
+            const h = Math.floor(totalMin / 60);
+            const m = totalMin % 60;
+            if (h === 0) return `${m} min`;
+            return `${h}h ${String(m).padStart(2, '0')}min`;
+        }
+
+        function lancerApplication() {
+            let defaultDate = getTodayISO();
+            document.getElementById('sommeil-date').value = defaultDate;
+            document.getElementById('ecran-date').value = defaultDate;
+            document.getElementById('cours-date').value = defaultDate;
+            initAllTimeRouletteSelects();
+            renderModulesActifs(); applyModulesVisibility(); renderMatieres(); updateBibleSelectUI(true); initChart(); calculerStatsGenerales(); afficherAmisPartages();
             afficherTransactions(); afficherSports(); afficherPrieres(); afficherCoursSessions(); afficherProjetsSessions(); afficherTodos(); afficherHistoriqueBible(); afficherHistoriqueEcran();
         }
 
@@ -833,21 +875,36 @@
         const modInfos = { quotidien: { label: '🌙 Quotidien' }, spirituel: { label: '🕊️ Spirituel' }, financier: { label: '💰 Finance' }, sport: { label: '⚡ Sport' }, cours: { label: '📚 Révisions' }, projets: { label: '🚀 Projets' } };
         const objToModule = { priere: 'spirituel', bible: 'spirituel', finance: 'financier', sport: 'sport', cours: 'cours', projets: 'projets', sommeil: 'quotidien', ecran: 'quotidien' };
 
-        function initSommeilRouletteSelects() {
+        function initAllTimeRouletteSelects() {
             let hOpts = '', mOpts = '';
-            for(let i=0; i<24; i++) hOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}</option>`;
-            for(let i=0; i<60; i+=5) mOpts += `<option value="${String(i).padStart(2,'0')}">${String(i).padStart(2,'0')}</option>`;
-            
-            document.getElementById('coucher-h').innerHTML = hOpts.replace(/<\/option>/g, "h</option>"); 
-            document.getElementById('coucher-m').innerHTML = mOpts.replace(/<\/option>/g, "m</option>");
-            document.getElementById('reveil-h').innerHTML = hOpts.replace(/<\/option>/g, "h</option>"); 
-            document.getElementById('reveil-m').innerHTML = mOpts.replace(/<\/option>/g, "m</option>");
-            document.getElementById('coucher-h').value = "23"; document.getElementById('reveil-h').value = "07";
-            
-            document.getElementById('ecran-h').innerHTML = hOpts; 
-            document.getElementById('ecran-m').innerHTML = mOpts;
-            document.getElementById('ecran-h').value = "00";
-            document.getElementById('ecran-m').value = "00";
+            for (let i = 0; i < 24; i++) {
+                const v = String(i).padStart(2, '0');
+                hOpts += `<option value="${v}">${v}h</option>`;
+            }
+            for (let i = 0; i < 60; i++) {
+                const v = String(i).padStart(2, '0');
+                mOpts += `<option value="${v}">${v}m</option>`;
+            }
+
+            const pairs = [
+                ['coucher-h', 'coucher-m', '23', '00'],
+                ['reveil-h', 'reveil-m', '07', '00'],
+                ['ecran-h', 'ecran-m', '00', '00'],
+                ['priere-manuel-h', 'priere-manuel-m', '00', '00'],
+                ['cours-h', 'cours-m', '00', '00'],
+                ['projets-manuel-h', 'projets-manuel-m', '00', '00']
+            ];
+
+            pairs.forEach(([hId, mId, defH, defM]) => {
+                const hEl = document.getElementById(hId);
+                const mEl = document.getElementById(mId);
+                if (hEl && mEl) {
+                    hEl.innerHTML = hOpts;
+                    mEl.innerHTML = mOpts;
+                    hEl.value = defH;
+                    mEl.value = defM;
+                }
+            });
         }
 
         function renderModulesActifs() {
@@ -915,7 +972,7 @@
             return { pct: obj.valeur > 0 ? Math.min(100, (vAff / obj.valeur) * 100) : 0, displayStr: `${vAff} / ${obj.valeur} ${obj.unite}`, titleStr: `Objectif ${pStr}`, detailHtml: '' };
         }
 
-        function updateFiltresTotauxUI() { let t = document.getElementById('filtre-type-totaux').value; ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); }); let d = new Date(); let isoDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate; if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate; calculerStatsGenerales(); }
+        function updateFiltresTotauxUI() { let t = document.getElementById('filtre-type-totaux').value; ['annee', 'mois', 'semaine', 'jour'].forEach(id => { document.getElementById('filtre-val-' + id).classList.toggle('hidden', t !== id); }); let isoDate = getTodayISO(); if(t === 'mois' && !document.getElementById('filtre-val-mois').value) document.getElementById('filtre-val-mois').value = isoDate.substring(0, 7); if(t === 'semaine' && !document.getElementById('filtre-val-semaine').value) document.getElementById('filtre-val-semaine').value = isoDate; if(t === 'jour' && !document.getElementById('filtre-val-jour').value) document.getElementById('filtre-val-jour').value = isoDate; calculerStatsGenerales(); }
 
         function evaluerBadges(streak) {
             let totalChapitres = getBibleSessions().length;
@@ -991,10 +1048,10 @@
             let curPro = appData.projetsSessions.filter(s=>filterFn(s.date)).reduce((a,s)=>a+s.dureeMin, 0);
             let curBib = getBibleSessions().filter(s=>filterFn(s.date)).length;
 
-            document.getElementById('stat-total-priere').innerText = curPri + " min";
+            document.getElementById('stat-total-priere').innerText = formatMinutesToHM(curPri);
             document.getElementById('stat-total-finance').innerText = curFin + " €";
             document.getElementById('stat-total-sport').innerText = curSpo + " séa.";
-            document.getElementById('stat-total-projets').innerText = curPro + " min";
+            document.getElementById('stat-total-projets').innerText = formatMinutesToHM(curPro);
             document.getElementById('stat-total-bible').innerText = curBib + " chap.";
 
             let ecranKeys = Object.keys(appData.tempsEcran || {}).filter(filterFn); let avgEcran = ecranKeys.length ? parseFloat((ecranKeys.reduce((a, k) => a + appData.tempsEcran[k], 0) / ecranKeys.length).toFixed(1)) : 0;
@@ -1147,7 +1204,7 @@
             if(!appData.tempsEcran || typeof appData.tempsEcran !== 'object' || Array.isArray(appData.tempsEcran)) appData.tempsEcran = {};
             appData.tempsEcran[dateStr] = parseFloat(totalH.toFixed(2)); 
             sauvegarderDonnees(); 
-            showNotification("Temps d'écran enregistré 📱", `${h}h${String(m).padStart(2,'0')} ajoutés.`);
+            showNotification("Temps d'écran enregistré 📱", `${h}h${String(m).padStart(2,'0')} enregistrés.`);
         }
 
         function afficherHistoriqueEcran() {
@@ -1235,7 +1292,10 @@
         function ajouterMatiere() { if(isReadOnly) return; let v = document.getElementById('nouvelle-matiere-input').value.trim(); if(v && !appData.matieresList.includes(v)) { appData.matieresList.push(v); document.getElementById('nouvelle-matiere-input').value = ''; sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
         function supprimerMatiereCourante() { if(isReadOnly) return; let v = document.getElementById('cours-matiere').value; if(v && appData.matieresList.length > 1 && confirm(`Supprimer la matière "${v}" ?`)) { appData.matieresList = appData.matieresList.filter(m => m !== v); sauvegarderDonnees(); renderMatieres(); renderChartCheckboxes(); updateChart(); } }
         
-        let chronos = { priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' }, cours: { i: null, run: false, debut: 0, acc: 0, act: 25*60, baseSec: 25*60, color: 'cyan', pMode: true }, projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' } };
+        let chronos = {
+            priere: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'indigo' },
+            projets: { i: null, run: false, debut: 0, acc: 0, act: 0, color: 'fuchsia' }
+        };
         
         function formatHeureHHMM(dateObj) {
             return String(dateObj.getHours()).padStart(2, '0') + ':' + String(dateObj.getMinutes()).padStart(2, '0');
@@ -1274,82 +1334,50 @@
             }
         }
 
-        function setPomodoroMode(id, min) {
-            if (isReadOnly) return;
-            let parsed = parseInt(min, 10);
-            if (isNaN(parsed) || parsed < 1) parsed = 25;
-            let inputEl = document.getElementById(`chrono-custom-${id}-min`);
-            if (inputEl) inputEl.value = parsed;
-            let c = chronos[id];
-            clearInterval(c.i);
-            c.run = false;
-            c.act = parsed * 60;
-            c.baseSec = parsed * 60;
-            c.acc = 0;
-            let btn = document.getElementById(`btn-toggle-${id}`);
-            btn.innerText = "Démarrer";
-            btn.classList.remove('bg-amber-600');
-            btn.classList.add(`bg-${c.color}-600`);
-            updateChronoAffichage(id);
-        }
-
         function toggleChrono(id) {
             if (isReadOnly) return;
             let c = chronos[id];
+            if (!c) return;
             let btn = document.getElementById(`btn-toggle-${id}`);
             if (!c.run) {
                 c.run = true;
                 btn.innerText = "Pause";
                 btn.classList.replace(`bg-${c.color}-600`, 'bg-amber-600');
                 c.debut = Date.now();
-                if (c.pMode) c.startAct = c.act;
                 c.i = setInterval(() => {
-                    if (c.pMode) {
-                        let elapsed = Math.floor((Date.now() - c.debut) / 1000);
-                        c.act = Math.max(0, c.startAct - elapsed);
-                        updateChronoAffichage(id);
-                        if (c.act === 0) {
-                            resetChrono(id);
-                            return;
-                        }
-                    } else {
-                        c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000);
-                        updateChronoAffichage(id);
-                    }
+                    c.act = c.acc + Math.floor((Date.now() - c.debut) / 1000);
+                    updateChronoAffichage(id);
                 }, 1000);
             } else {
                 clearInterval(c.i);
                 c.run = false;
                 btn.innerText = "Reprendre";
                 btn.classList.replace('bg-amber-600', `bg-${c.color}-600`);
-                if (!c.pMode) c.acc = c.act;
+                c.acc = c.act;
             }
         }
 
         function resetChrono(id) { 
             if (isReadOnly) return;
-            let c = chronos[id]; clearInterval(c.i); c.run = false; c.acc = 0; 
+            let c = chronos[id];
+            if (!c) return;
+            clearInterval(c.i); c.run = false; c.acc = 0; 
             document.getElementById(`btn-toggle-${id}`).innerText = "Démarrer"; 
             document.getElementById(`btn-toggle-${id}`).classList.remove('bg-amber-600'); 
             document.getElementById(`btn-toggle-${id}`).classList.add(`bg-${c.color}-600`); 
             
-            let baseSec = c.baseSec || (25 * 60);
-            let timeToAdd = c.pMode ? Math.floor((baseSec - c.act) / 60) : Math.floor(c.act / 60); 
-            
+            let timeToAdd = Math.floor(c.act / 60); 
             if (timeToAdd > 0) { 
-                if (id === 'cours') enregistrerSessionDecoupee(appData.coursSessions, timeToAdd, { matiere: document.getElementById('cours-matiere').value });
                 if (id === 'priere') enregistrerSessionDecoupee(appData.priereSessions, timeToAdd);
                 if (id === 'projets') enregistrerSessionDecoupee(appData.projetsSessions, timeToAdd, { nom: document.getElementById('projets-nom').value.trim() || 'Projet' });
-                showNotification("Session enregistrée ⏱️", `${timeToAdd} minutes ajoutées.`); 
+                showNotification("Session enregistrée ⏱️", `${formatMinutesToHM(timeToAdd)} ajoutées.`); 
             } 
-            c.act = c.pMode ? baseSec : 0; 
+            c.act = 0; 
             updateChronoAffichage(id); 
             sauvegarderDonnees(); 
-            if(document.fullscreenElement) document.exitFullscreen(); 
         }
 
         function updateChronoAffichage(id) { let s = chronos[id].act; document.getElementById(`chrono-${id}-display`).innerText = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(v => String(v).padStart(2, '0')).join(':'); }
-        function toggleFullscreen(id) { let el = document.getElementById(id); if (!document.fullscreenElement) { el.requestFullscreen().catch(e => {}); } else { document.exitFullscreen(); } }
         function exporterDonnees() { let str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData)); let dl = document.createElement('a'); dl.setAttribute("href", str); dl.setAttribute("download", `dashboard.json`); document.body.appendChild(dl); dl.click(); dl.remove(); }
         function importerDonnees(e) { if(isReadOnly) return; let f = e.target.files[0]; if (!f) return; let r = new FileReader(); r.onload = function(ev) { try { appData = normaliserAppData(JSON.parse(ev.target.result)); sauvegarderDonnees(); location.reload(); } catch (err) {} }; r.readAsText(f); }
         function ajouterTodo() { if(isReadOnly) return; let t = document.getElementById('todo-input').value.trim(); if(t) { appData.todos.unshift({ id: Date.now(), texte: t, fait: false }); document.getElementById('todo-input').value = ''; sauvegarderDonnees(); } }
@@ -1359,21 +1387,65 @@
         
         function ajouterPriereManuelle() { 
             if(isReadOnly) return;
-            let m = parseInt(document.getElementById('priere-manuel-min').value, 10); 
-            if(m>0) { 
-                enregistrerSessionDecoupee(appData.priereSessions, m);
-                document.getElementById('priere-manuel-min').value = ''; 
-                sauvegarderDonnees(); 
-            } 
+            let h = parseInt(document.getElementById('priere-manuel-h').value, 10) || 0;
+            let m = parseInt(document.getElementById('priere-manuel-m').value, 10) || 0;
+            let totalMin = (h * 60) + m;
+            if (totalMin <= 0) { alert("Veuillez sélectionner une durée supérieure à 0."); return; }
+            enregistrerSessionDecoupee(appData.priereSessions, totalMin);
+            document.getElementById('priere-manuel-h').value = '00';
+            document.getElementById('priere-manuel-m').value = '00';
+            sauvegarderDonnees();
+            showNotification("Prière enregistrée 🕊️", `${formatMinutesToHM(totalMin)} ajoutées.`);
         }
         function supprimerPriere(id) { if(isReadOnly) return; appData.priereSessions = appData.priereSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = (appData.priereSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${s.dureeMin} min - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherPrieres() { document.getElementById('liste-prieres').innerHTML = (appData.priereSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🕊️ ${formatMinutesToHM(s.dureeMin)} - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerPriere(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
+        function enregistrerCoursManuel() {
+            if (isReadOnly) return;
+            let matiere = document.getElementById('cours-matiere').value;
+            if (!matiere) { alert("Veuillez sélectionner une matière."); return; }
+            let h = parseInt(document.getElementById('cours-h').value, 10) || 0;
+            let m = parseInt(document.getElementById('cours-m').value, 10) || 0;
+            let totalMin = (h * 60) + m;
+            if (totalMin <= 0) { alert("Veuillez sélectionner une durée supérieure à 0."); return; }
+
+            let dateVal = document.getElementById('cours-date').value;
+            let todayIso = getTodayISO();
+            if (!dateVal || dateVal === todayIso) {
+                enregistrerSessionDecoupee(appData.coursSessions, totalMin, { matiere });
+            } else {
+                appData.coursSessions.unshift({
+                    id: Date.now(),
+                    date: parseDateISOToFr(dateVal),
+                    dureeMin: totalMin,
+                    heure: formatHeureHHMM(new Date()),
+                    matiere
+                });
+            }
+
+            document.getElementById('cours-h').value = '00';
+            document.getElementById('cours-m').value = '00';
+            sauvegarderDonnees();
+            showNotification("Révision enregistrée 📚", `${formatMinutesToHM(totalMin)} en ${matiere}.`);
+        }
         function supprimerCours(id) { if(isReadOnly) return; appData.coursSessions = appData.coursSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = (appData.coursSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherCoursSessions() { document.getElementById('liste-cours-sessions').innerHTML = (appData.coursSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>📚 ${echapperHTML(s.matiere)} (${formatMinutesToHM(s.dureeMin)}) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerCours(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
+        function ajouterProjetManuel() {
+            if (isReadOnly) return;
+            let h = parseInt(document.getElementById('projets-manuel-h').value, 10) || 0;
+            let m = parseInt(document.getElementById('projets-manuel-m').value, 10) || 0;
+            let totalMin = (h * 60) + m;
+            if (totalMin <= 0) { alert("Veuillez sélectionner une durée supérieure à 0."); return; }
+            let nom = document.getElementById('projets-nom').value.trim() || 'Projet';
+            enregistrerSessionDecoupee(appData.projetsSessions, totalMin, { nom });
+            document.getElementById('projets-manuel-h').value = '00';
+            document.getElementById('projets-manuel-m').value = '00';
+            sauvegarderDonnees();
+            showNotification("Projet enregistré 🚀", `${formatMinutesToHM(totalMin)} ajoutées sur ${nom}.`);
+        }
         function supprimerProjet(id) { if(isReadOnly) return; appData.projetsSessions = appData.projetsSessions.filter(s => s.id !== id); sauvegarderDonnees(); }
-        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = (appData.projetsSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${s.dureeMin} min) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
+        function afficherProjetsSessions() { document.getElementById('liste-projets-sessions').innerHTML = (appData.projetsSessions || []).map(s => `<div class="flex justify-between p-2 bg-slate-900 border border-slate-800 rounded"><span>🚀 ${echapperHTML(s.nom)} (${formatMinutesToHM(s.dureeMin)}) - ${s.date} (de ${s.heure || '--:--'} à ${getEndTimeStr(s.heure, s.dureeMin)})</span><button onclick="supprimerProjet(${s.id})" class="text-rose-400 hide-on-readonly">🗑️</button></div>`).join(''); }
         
         function ajouterSportManuel() { if(isReadOnly) return; let nomSport = document.getElementById('sport-nom').value.trim() || "Général"; appData.sports.unshift({ id: Date.now(), date: getToday(), nom: nomSport, heure: "18:00" }); document.getElementById('sport-nom').value = ''; sauvegarderDonnees(); showNotification("Sport enregistré ⚡", `Séance de ${nomSport} ajoutée avec succès !`); }
         function supprimerSport(id) { if(isReadOnly) return; appData.sports = appData.sports.filter(s => s.id !== id); sauvegarderDonnees(); }
